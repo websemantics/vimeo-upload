@@ -35,13 +35,13 @@ This code has only been tested for uploading videos and monitoring progress.
 # Change Log
 All notable changes to this project will be documented in this section.
 
-## [1.1] - 2016-02-25
-### Changed
+### [1.1] - 2016-02-25
+#### Changed
 - Update video data after upload (name & description)
 - Adding data chunking support for Cordova 
 
-### [1.0] - 2015-01-14
-#### Changed
+#### [1.0] - 2015-01-14
+##### Changed
 - Upload videos
 - Support for high-definition videos
 
