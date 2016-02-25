@@ -104,7 +104,37 @@ var MediaUploader = function(options) {
   }
 
   this.httpMethod = options.fileId ? 'PUT' : 'POST';
+
+  this.currentXHR = null;
+  this.chunkProgress = 0;
 };
+
+MediaUploader.prototype.destroy = function() {
+  this.isCordovaApp = null;
+  this.realUrl = null;
+  this.file = null;
+  this.contentType = null;
+  this.metadata = null;
+  this.token = null;
+  this.onComplete = null;
+  this.onProgress = null;
+  this.onError = null;
+  this.offset = null;
+  this.chunkSize = null;
+  this.retryHandler = null;
+  this.url = null;
+  this.httpMethod = null;
+
+  this.currentXHR = null;
+  this.chunkProgress = null;
+
+  this.user = null;
+  this.ticket_id = null;
+  this.complete_url = null;
+  this.token = null;
+
+  this.offset = null;
+}
 
 /**
  * Initiate the upload (Get vimeo ticket number and upload url)
@@ -136,6 +166,12 @@ MediaUploader.prototype.upload = function() {
     type:'streaming'
   }));
 
+  this.currentXHR = xhr;
+};
+
+MediaUploader.prototype.abort = function() {
+  this.currentXHR.abort()
+  this.onError("Upload aborted");
 };
 
 /**
@@ -157,17 +193,22 @@ MediaUploader.prototype.sendFile_ = function() {
     content = content.slice(this.offset, end);
   }
 
-  if(this.isCordovaApp) {
-      // Read the video file, 
-      var reader = new FileReader();
-      reader.onloadend = function (evt) {
-          this.send_(evt.target.result, end);          
-      }.bind(this);
-      reader.readAsArrayBuffer(this.file);
+  this.chunkProgress = end
 
-    } else{
-      this.send_(content, end); 
-    }
+  if(this.isCordovaApp) {
+    // Read the video file, 
+    var reader = new FileReader();
+
+    reader.onloadend = function (evt) {
+        this.send_(evt.target.result, end);
+    }.bind(this);
+
+    reader.readAsArrayBuffer(content);
+
+  } else{
+    this.send_(content, end); 
+  }
+
 };
 
 
@@ -177,20 +218,27 @@ MediaUploader.prototype.sendFile_ = function() {
  * @private
  */
 MediaUploader.prototype.send_ = function(content, end) {
+  self = this
 
-    var xhr = new XMLHttpRequest();
-    xhr.open('PUT', this.url, true);
-    xhr.setRequestHeader('Content-Type', this.contentType);
-    // xhr.setRequestHeader('Content-Length', this.file.size);
-    xhr.setRequestHeader('Content-Range', "bytes " + this.offset + "-" + (end - 1) + "/" + this.file.size);
+  var xhr = new XMLHttpRequest();
+  xhr.open('PUT', this.url, true);
+  xhr.setRequestHeader('Content-Type', this.contentType);
+  // xhr.setRequestHeader('Content-Length', this.file.size);
+  xhr.setRequestHeader('Content-Range', "bytes " + this.offset + "-" + (end - 1) + "/" + this.file.size);
 
-    if (xhr.upload) {
-      xhr.upload.addEventListener('progress', this.onProgress);
-    }
-    xhr.onload = this.onContentUploadSuccess_.bind(this);
-    xhr.onerror = this.onContentUploadError_.bind(this);
-    xhr.send(content);
+  if (xhr.upload) {
+    // xhr.upload.addEventListener('progress', this.onProgress);
+    xhr.upload.addEventListener('progress', function(xmlHttpRequestProgressEvent) {
+      loaded = self.offset + xmlHttpRequestProgressEvent.loaded;
+      total = self.file.size;
+      self.onProgress(loaded, total);
+    });
+  }
+  xhr.onload = this.onContentUploadSuccess_.bind(this);
+  xhr.onerror = this.onContentUploadError_.bind(this);
+  xhr.send(content);
 
+  this.currentXHR = xhr
 }
 
 /**
@@ -199,28 +247,29 @@ MediaUploader.prototype.send_ = function(content, end) {
  * @private
  */
 MediaUploader.prototype.verify_ = function() {
-
   var xhr = new XMLHttpRequest();
   xhr.open('PUT', this.url, true);
   xhr.setRequestHeader('Content-Length', "0");
   xhr.setRequestHeader('Content-Range', "bytes */*");
   
   xhr.onload = function(e) {
-  if (e.target.status == 200 || e.target.status == 201) {
-    console.log('verify success!!');
-  } else if (e.target.status == 308) {    
-    console.log('status 308');
-  }
-};
+    if (e.target.status == 200 || e.target.status == 201) {
+      // console.log('verify success!!');
+    } else if (e.target.status == 308) {    
+      // console.log('status 308');
+    }
+    
+  };
 
   xhr.onerror = function(e) {
-  if (e.target.status && e.target.status < 500) {
-    // console.log(e.target.response);
-  } else {
-    // Do nothing, 
-  }
-};
+    if (e.target.status && e.target.status < 500) {
+      // console.log(e.target.response);
+    } else {
+      // Do nothing, 
+    }
+  };
   xhr.send();
+  this.currentXHR = xhr
 };
 
 /**
@@ -229,28 +278,23 @@ MediaUploader.prototype.verify_ = function() {
  * @private
  */
 MediaUploader.prototype.resume_ = function() {
+  self = this
   var xhr = new XMLHttpRequest();
   xhr.open('PUT', this.url, true);
   xhr.setRequestHeader('Content-Range', "bytes */" + this.file.size);
   xhr.setRequestHeader('X-Upload-Content-Type', this.file.type);
   if (xhr.upload) {
-    xhr.upload.addEventListener('progress', this.onProgress);
+    // xhr.upload.addEventListener('progress', this.onProgress);
+    xhr.upload.addEventListener('progress', function(xmlHttpRequestProgressEvent) {
+      loaded = self.offset + xmlHttpRequestProgressEvent.loaded;
+      total = self.file.size;
+      self.onProgress(loaded, total);
+    });
   }
   xhr.onload = this.onContentUploadSuccess_.bind(this);
   xhr.onerror = this.onContentUploadError_.bind(this);
   xhr.send();
-};
-
-/**
- * Extract the last saved range if available in the request.
- *
- * @param {XMLHttpRequest} xhr Request object
- */
-MediaUploader.prototype.extractRange_ = function(xhr) {
-  var range = xhr.getResponseHeader('Range');
-  if (range) {
-    this.offset = parseInt(range.match(/\d+/g).pop(), 10) + 1;
-  }
+  this.currentXHR = xhr
 };
 
 /**
@@ -297,17 +341,17 @@ MediaUploader.prototype.complete_ = function() {
  * @param {object} e XHR event
  */
 MediaUploader.prototype.onContentUploadSuccess_ = function(e) {
+
+  if (e.target.status == 200 || e.target.status == 201 || e.target.status == 308) {
+    this.offset = this.chunkProgress;
   
-  if (e.target.status == 200 || e.target.status == 201) {
-   
-    this.complete_();
-
-  } else if (e.target.status == 308) {
-    this.extractRange_(e.target);
-    this.retryHandler.reset();
-    this.sendFile_();
+    if (this.offset == this.file.size) {
+      this.complete_();
+    } else {
+      this.retryHandler.reset();
+      this.sendFile_();
+    }
   }
-
 };
 
 /**
@@ -318,6 +362,7 @@ MediaUploader.prototype.onContentUploadSuccess_ = function(e) {
  * @param {object} e XHR event
  */
 MediaUploader.prototype.onContentUploadError_ = function(e) {
+  console.error("MediaUploader.prototype.onContentUploadError_ e.target.status: ", e.target.status)
   if (e.target.status && e.target.status < 500) {
     this.onError(e.target.response);
   } else {
@@ -332,6 +377,7 @@ MediaUploader.prototype.onContentUploadError_ = function(e) {
  * @param {object} e XHR event
  */
 MediaUploader.prototype.onCompleteError_ = function(e) {
+  console.error("MediaUploader.prototype.onCompleteError_ e.target.response: ", e.target.response)
   this.onError(e.target.response); // TODO - Retries for initial upload
 };
 
@@ -342,6 +388,7 @@ MediaUploader.prototype.onCompleteError_ = function(e) {
  * @param {object} e XHR event
  */
 MediaUploader.prototype.onUploadError_ = function(e) {
+  console.error("MediaUploader.prototype.onUploadError_ e.target.response: ", e.target.response)
   this.onError(e.target.response); // TODO - Retries for initial upload
 };
 
@@ -378,5 +425,4 @@ MediaUploader.prototype.buildUrl_ = function(id, params, baseUrl) {
   }
   return url;
 };
-
 
