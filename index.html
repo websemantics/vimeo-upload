@@ -72,21 +72,22 @@
 <a class="github-button" href="https://github.com/websemantcis" data-style="mega" data-count-href="/websemantcis/followers" data-count-api="/users/websemantcis#followers" data-count-aria-label="# followers on GitHub" aria-label="Follow @websemantcis on GitHub">Follow @websemantcis</a>
 
       </div>
-      <p class="lead">Fill in your vimeo access token and drag you video file into the area below to upload to your vimeo account.</p>
+      <p class="lead">Fill in your vimeo access token, name and description then drag your video file into the dotted area below to upload to your vimeo account.</p>
       <div>
-        <input type="accessToken" id="accessToken" class="form-control" placeholder="Vimeo access token" required autofocus></input>
-      <div class="checkbox">
-        <label>
-          <input type="checkbox" id="upgrade_to_1080" name="upgrade_to_1080"> Upgrade to 1080 </input>
-        </label>
-      </div>
-      <p id="video-data">Video Data</p>
-      <div class="form-group">
-        <input type="text" name="name" id="videoName" class="form-control" placeholder="Name" value="default name"></input>
-      </div>
-      <div class="form-group">
-        <input type="text" name="description" id="videoDescription" class="form-control" placeholder="Description" value = "default description"></input>
-      </div>
+        <div class="form-group">
+          <input type="accessToken" id="accessToken" class="form-control" placeholder="Vimeo access token" required autofocus></input>
+        </div>
+        <div class="form-group">
+          <input type="text" name="name" id="videoName" class="form-control" placeholder="Video name" value=""></input>
+        </div>
+        <div class="form-group">
+          <input type="text" name="description" id="videoDescription" class="form-control" placeholder="Video description" value =""></input>
+        </div>
+        <div class="checkbox">
+          <label>
+            <input type="checkbox" id="upgrade_to_1080" name="upgrade_to_1080"> Upgrade to 1080 </input>
+          </label>
+        </div>
       </div>
       <br>
       <div class="progress">
@@ -107,11 +108,6 @@
 
      <script src="upload.js"></script>
      <script type="text/javascript">
-        videoData = {
-          name: 'Default Name',
-          description: 'Default Description'
-        };
-
        /**
         * Called when files are dropped on to the drop target. For each file,
         * uploads the content to Drive & displays the results when complete.
@@ -124,8 +120,8 @@
          var upgrade_to_1080 = document.getElementById("upgrade_to_1080").checked;
 
          // Set Video Data
-         videoData.name = document.getElementById("videoName").value;
-         videoData.description = document.getElementById("videoDescription").value;
+         var videoName = document.getElementById("videoName").value;
+         var videoDescription = document.getElementById("videoDescription").value;
 
          // Clear the results div
          var node = document.getElementById('results');
@@ -138,7 +134,10 @@
              file: files[0],
              token: accessToken,
              upgrade_to_1080: upgrade_to_1080,
-             videoData: videoData,
+             videoData: {
+                name: (videoName > '') ? videoName : 'Default name',
+                description: (videoDescription > '') ? videoDescription : 'Default description'
+             },
              onError: function(data) {
 
                 var errorResponse = JSON.parse(data);

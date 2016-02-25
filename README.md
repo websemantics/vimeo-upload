@@ -1,5 +1,14 @@
 # Vimeo Upload
 
+```
+  _   ___                  __  __     __             __
+ | | / (_)_ _  ___ ___    / / / /__  / /__  ___ ____/ /
+ | |/ / /  ' \/ -_) _ \  / /_/ / _ \/ / _ \/ _ `/ _  / 
+ |___/_/_/_/_/\__/\___/  \____/ .__/_/\___/\_,_/\_,_/  
+                             /_/ v1.1                      
+Updated: 25 Feb 2016
+```
+
 Helper code for uploading video files directly with vanilla Javascript (XHR/CORS) to your Vimeo account. 
 
 Try the [live version](http://websemantics.github.io/vimeo-upload/)
@@ -25,11 +34,24 @@ See `upload.js` for additional parameters you can include when initializing the 
 
 This code has only been tested for uploading videos and monitoring progress.
 
+# Change Log
+All notable changes to this project will be documented in this section.
+
+## [1.1] - 2016-02-25
+### Changed
+- Update video data after upload (name & description)
+- Adding data chunking support for Cordova 
+
+### [1.0] - 2015-01-14
+#### Changed
+- Upload videos
+- Support for high-definition videos
+
 ## ToDo
 
 Implement Pause / Resume
 
 ## Open Source Projects Used
 
-- [cors-upload-sample](https://github.com/googledrive/cors-upload-sample)
+- Sample code for uploading files directly with XHR/CORS: [cors-upload-sample](https://github.com/googledrive/cors-upload-sample)
 
