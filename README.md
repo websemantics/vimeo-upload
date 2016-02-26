@@ -4,8 +4,8 @@
  | |/ / /  ' \/ -_) _ \  / /_/ / _ \/ / _ \/ _ `/ _  / 
  |___/_/_/_/_/\__/\___/  \____/ .__/_/\___/\_,_/\_,_/  
                              /_/ v1.1                      
-Updated: 25 Feb 2016
 ```
+> Last update: 25 Feb 2016
 
 Helper code for uploading video files directly with vanilla Javascript (XHR/CORS) to your Vimeo account. 
 
