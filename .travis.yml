@@ -1,0 +1,8 @@
+script: bash ./deploy.sh
+language: node_js
+node_js:
+- '0.10'
+env:
+  global:
+  - GH_REF: github.com/websemantics/vimeo-upload.git
+  - secure: klnX6h83dvol9OGCqzPXlV2QXg+O2Ji1fe57sZb/zn9avCYZZFmJhtdFi/qSOVIUUGMohxF1ueDOGfnInTwOGuz7MTyiElp9f65w24BnhXcLO2/DutZIfDZErSZ7YthlVzqv+JaqDNYLw7rH9b9b0gXf+Ohiqll2rTCcmzELqQLKrPpfg8Fq/0kxgMrVPmUrv1YWEom9f3nvm5qkIEPP8OsBaVkeIGG3rl6rtCjOppbbPByb9AAmbw1nYJdeEnqrcuW8SenSP+lCTJP7Lb2U+KXOTNyY1OwiFE63AGhX6J+APghW52ywkrfTWN7gTMZOeDsfmMLDDU7S1mx2bcBtd3l9cCQQ6bOKjSOtNwNmml2qA2pXTrn7jXSO+kJ7NCIZ56XS/JWO/reDG/7iin2TuD7VBk5dTACBrH8VmXoOhyq3+qULtKmX5Vwqjuon44UqiQsl1OJ9M1hiuIvbrJONtKdecczSiL0AKAkX+elxfLemYvYbNk3YKfh54DcnmFlov7aw2Y4guuoffF2HmxnNWc/dH0QiXNkb/Ntr10Fw9U4qP+PdLBRFMXsp3xwtdNc3auHp5d8jvqsWoKYK3eC8HzrnD9G+E5znHBuR0xt1V+0Mw/08JuUGaf16zYGkKYTh7yww6cr6exx10iTiTl/fbS5dr88ji+uMMJJMo7X4YS0=

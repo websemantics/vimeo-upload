@@ -15,14 +15,26 @@
       /* Margin bottom by footer height */
       margin-bottom: 60px;
     }
+
+    .logo {
+       width:100%;
+       margin-bottom: 20px;
+    }
+
+    .lead {
+      font-size: 18px;
+    }
     .footer {
       position: absolute;
       bottom: 0;
+      padding-top: 15px;
       width: 100%;
       /* Set the fixed height of the footer here */
       height: 60px;
-      background-color: #f5f5f5;
+      color: #ffffff;
+      background-color: #505662;
     }
+
 
     /* Custom page CSS
     -------------------------------------------------- */
@@ -63,7 +75,9 @@
 
     <div class="container">
       <div class="page-header">
-        <h1><img src="img/icon.png" style="width:50px"></img>&nbsp;Vimeo Upload</h1>
+        <div><img src="img/icon.svg" class="logo"></img></div>
+        <p class="lead">Uploading video files directly with vanilla Javascript to your Vimeo account.</p>
+        <div></div>
 
 <a class="github-button" href="https://github.com/websemantics/vimeo-upload" data-icon="octicon-star" data-style="mega" data-count-href="/websemantics/vimeo-upload/stargazers" data-count-api="/repos/websemantics/vimeo-upload#stargazers_count" data-count-aria-label="# stargazers on GitHub" aria-label="Star websemantics/vimeo-upload on GitHub">Star</a>
 
@@ -102,7 +116,9 @@
 
     <footer class="footer">
       <div class="container">
-        <p class="text-muted"><a href="http://websemantics.ca">WebSemantics, Inc.</a></p>
+          <p class="copyright">Built with <img data-preserve-html-node="true" src="img/heart.svg" alt="love" style="width:22px;height:22px;"> by &nbsp;<a href="http://websemantics.ca">
+            <img src="https://raw.githubusercontent.com/websemanticsio/media/gh-pages/assets/png/logo-white-h-h32@2x.png" alt="Web Semantics" style="max-height:28px; height: auto !important" class="retina_logo">
+              </a></p>
       </div>
     </footer>
 
