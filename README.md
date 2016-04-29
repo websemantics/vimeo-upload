@@ -1,16 +1,15 @@
 ```
-_    ___                    
+ _    ___                    
 | |  / (_)___ ___  ___  ____                                       
 | | / / / __ `__ \/ _ \/ __ \   ┌───────────────────────────────────────┐
 | |/ / / / / / / /  __/ /_/ /   | ▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒  %80   |
 |___/_/_/ /_/ /_/\___/\____/    └───────────────────────────────────────┘
-                    Upload                      
+                    Upload, ...                     
 
 ```
 > Uploading video files directly with vanilla Javascript (XHR/CORS) to your Vimeo account.
 
-Try the [live version](http://websemantics.github.io/vimeo-upload/)
-and drag & drop files to upload them to Vimeo.
+Try the [LIVE](http://websemantics.github.io/vimeo-upload/) version, ..  drag & drop files to upload them to Vimeo.
 
 
 ## Usage
