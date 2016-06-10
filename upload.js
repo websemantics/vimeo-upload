@@ -94,6 +94,7 @@ var MediaUploader = function(options) {
   this.offset = options.offset || 0;
   this.chunkSize = options.chunkSize || 0;
   this.retryHandler = new RetryHandler();
+  this.metadata = [];
 
   this.url = options.url;
 
