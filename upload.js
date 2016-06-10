@@ -79,7 +79,7 @@ RetryHandler.prototype.getRandomInt_ = function(min, max) {
  */
 var MediaUploader = function(options) {
   var noop = function() {};
-  this.file = options.file;
+  this.file = options.file || {};
   this.contentType = options.contentType || this.file.type || 'application/octet-stream';
   this.metadata = options.metadata || {
     'title': this.file.name,
@@ -94,6 +94,7 @@ var MediaUploader = function(options) {
   this.offset = options.offset || 0;
   this.chunkSize = options.chunkSize || 0;
   this.retryHandler = new RetryHandler();
+  this.metadata = [];
 
   this.url = options.url;
 
@@ -204,7 +205,7 @@ MediaUploader.prototype.extractRange_ = function(xhr) {
  * The final step is to call vimeo.videos.upload.complete to queue up
  * the video for transcoding.
  *
- * If successful call 'onComplete'
+ * If successful call 'onUpdateVideoData_'
  *
  * @private
  */
@@ -223,8 +224,7 @@ MediaUploader.prototype.complete_ = function() {
 
       // Example of location: ' /videos/115365719', extract the video id only
       var video_id = location.split('/').pop();
-
-      this.onComplete(video_id);
+      // Update the video metadata
       this.onUpdateVideoData_(video_id);
 
     } else {
@@ -237,7 +237,7 @@ MediaUploader.prototype.complete_ = function() {
 };
 
 /**
- * Update the Video Data
+ * Update the Video Data and add the metadata to the upload object
  *
  * @private
  * @param {string} [id] Video Id
@@ -249,8 +249,40 @@ MediaUploader.prototype.onUpdateVideoData_ = function(video_id) {
 
   xhr.open(httpMethod, url, true);
   xhr.setRequestHeader('Authorization', 'Bearer ' + this.token);
+  xhr.onload = function (e) {
+    //add the metadata
+    this.onGetMetadata_(e, video_id);
+  }.bind(this);
   xhr.send(this.buildQuery_(this.videoData));
 }
+
+
+/**
+ * Retrieve the metadata from a successful onUpdateVideoData_ response
+ * This is is useful when uploading unlisted videos as the URI has changed.
+ *
+ * If successful call 'onUpdateVideoData_'
+ *
+ * @private
+ * @param {object} e XHR event
+ * @param {string} [id] Video Id
+ */
+MediaUploader.prototype.onGetMetadata_ = function (e, video_id) {
+  // Get the video location (videoId)
+  if (e.target.status < 400) {
+
+    if (e.target.response) {
+      //add the returned metadata to the metadata array
+      var meta = JSON.parse(e.target.response);
+      //get the new index of the item
+      var index = this.metadata.push(meta) - 1;
+      //call the complete method
+      this.onComplete(video_id, index);
+    } else {
+      this.onCompleteError_(e);
+    }
+  }
+};
 
 /**
  * Handle successful responses for uploads. Depending on the context,
