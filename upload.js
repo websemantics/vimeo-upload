@@ -238,7 +238,7 @@ MediaUploader.prototype.complete_ = function() {
 };
 
 /**
- * Update the Video Data
+ * Update the Video Data and add the metadata to the upload object
  *
  * @private
  * @param {string} [id] Video Id
@@ -250,6 +250,10 @@ MediaUploader.prototype.onUpdateVideoData_ = function(video_id) {
 
   xhr.open(httpMethod, url, true);
   xhr.setRequestHeader('Authorization', 'Bearer ' + this.token);
+  xhr.onload = function (e) {
+    //add the metadata
+    this.onGetMetadata_(e, video_id);
+  }.bind(this);
   xhr.send(this.buildQuery_(this.videoData));
 }
 
