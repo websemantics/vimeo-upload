@@ -104,6 +104,7 @@ var MediaUploader = function(options) {
   }
 
   this.httpMethod = options.fileId ? 'PUT' : 'POST';
+    this.file = options.file || {};
 };
 
 /**
