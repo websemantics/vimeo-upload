@@ -205,7 +205,7 @@ MediaUploader.prototype.extractRange_ = function(xhr) {
  * The final step is to call vimeo.videos.upload.complete to queue up
  * the video for transcoding.
  *
- * If successful call 'onComplete'
+ * If successful call 'onUpdateVideoData_'
  *
  * @private
  */
@@ -224,8 +224,7 @@ MediaUploader.prototype.complete_ = function() {
 
       // Example of location: ' /videos/115365719', extract the video id only
       var video_id = location.split('/').pop();
-
-      this.onComplete(video_id);
+      // Update the video metadata
       this.onUpdateVideoData_(video_id);
 
     } else {
