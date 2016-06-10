@@ -253,6 +253,34 @@ MediaUploader.prototype.onUpdateVideoData_ = function(video_id) {
   xhr.send(this.buildQuery_(this.videoData));
 }
 
+
+/**
+ * Retrieve the metadata from a successful onUpdateVideoData_ response
+ * This is is useful when uploading unlisted videos as the URI has changed.
+ *
+ * If successful call 'onUpdateVideoData_'
+ *
+ * @private
+ * @param {object} e XHR event
+ * @param {string} [id] Video Id
+ */
+MediaUploader.prototype.onGetMetadata_ = function (e, video_id) {
+  // Get the video location (videoId)
+  if (e.target.status < 400) {
+
+    if (e.target.response) {
+      //add the returned metadata to the metadata array
+      var meta = JSON.parse(e.target.response);
+      //get the new index of the item
+      var index = this.metadata.push(meta) - 1;
+      //call the complete method
+      this.onComplete(video_id, index);
+    } else {
+      this.onCompleteError_(e);
+    }
+  }
+};
+
 /**
  * Handle successful responses for uploads. Depending on the context,
  * may continue with uploading the next chunk of the file or, if complete,
