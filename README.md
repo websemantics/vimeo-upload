@@ -2,39 +2,54 @@
  _    ___                    
 | |  / (_)___ ___  ___  ____                                       
 | | / / / __ `__ \/ _ \/ __ \   ┌───────────────────────────────────────┐
-| |/ / / / / / / /  __/ /_/ /   | ▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒  %80   |
+| |/ / / / / / / /  __/ /_/ /   | ▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒  %75     |
 |___/_/_/ /_/ /_/\___/\____/    └───────────────────────────────────────┘
-                    Upload, ...                     
+                     Upload                   
 
 ```
 [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/websemantics/vimeo-upload/master/LICENSE) [![GitHub forks](https://img.shields.io/github/forks/websemantics/vimeo-upload.svg)](https://github.com/websemantics/vimeo-upload/network) [![GitHub stars](https://img.shields.io/github/stars/websemantics/vimeo-upload.svg)](https://github.com/websemantics/vimeo-upload/stargazers)
-[![Percentage of issues still open](http://isitmaintained.com/badge/open/websemantics/vimeo-upload.svg)](http://isitmaintained.com/project/websemantics/vimeo-upload "Percentage of issues still open")
+[![Percentage of issues still open](http://isitmaintained.com/badge/open/websemantics/vimeo-upload.svg)](http://isitmaintained.com/project/websemantics/vimeo-upload "Percentage of issues still open") [![js-standard-style](https://img.shields.io/badge/code%20style-standard-brightgreen.svg)](http://standardjs.com/)
 
-> Upload your videos directly to your Vimeo account with vanilla Javascript.
+> Upload videos to your Vimeo account directly from a browser or a Node.js app.
 
-Try the [LIVE](http://websemantics.github.io/vimeo-upload/) version, ..  drag & drop files to upload them to Vimeo.
+Try it [LIVE](http://websemantics.github.io/vimeo-upload/)
 
+
+## Install
+
+Using Bower
+```
+Bower install vimeo-upload
+```
+
+Or npm
+
+```
+npm install vimeo-upload
+```
 
 ## Usage
 
-If you'd like to use the code in your own project, copy `upload.js` and include it.
+Include `vimeo-upload.js` in your index.html.
 
-    <script src="/path/to/upload.js"></script>
+```
+<script src="/path/to/vimeo-upload.js"></script>
+```
 
-When uploading a file, create a new MediaUploader initialized with a Blob or File and Vimeo access token. Then call `upload()` to start the upload process.
+Create a new `VimeoUpload` initialized with a Blob or File and Vimeo Access Token then call `upload()` to start the upload process.
 
-    var uploader = new MediaUploader({
-      file: content,
-      token: accessToken,
-    });
-    uploader.upload();
+```javascript
+var uploader = new VimeoUpload({
+  file: file,
+  token: accessToken,
+});
 
-Your access token need to be authorized by Vimeo.
+uploader.upload();
+```
 
-See `upload.js` for additional parameters you can include when initializing the uploader, including callbacks for success & failure events.
+Your access token need to be authorized by Vimeo. Create new Vimeo access token [here](https://developer.vimeo.com/apps).
 
-This code has only been tested for uploading videos and monitoring progress.
-
+Check `index.html` for details and additional parameters you can include when initializing `VimeoUpload`.
 
 ## Credits
 

@@ -16,6 +16,10 @@
             color: #505662;
         }
 
+        .help {
+            font-size: smaller;
+        }
+
         .page-header {
             padding-bottom: 18px;
             margin: 40px 0 12px;
@@ -67,15 +71,22 @@
             margin: 20px 0;
         }
 
+        #progress-container {
+            -webkit-box-shadow: none;
+            box-shadow: inset none;
+            display:none;
+        }
+
         #drop_zone {
             border: 2px dashed #bbb;
             -moz-border-radius: 5px;
             -webkit-border-radius: 5px;
             border-radius: 5px;
-            padding: 25px;
+            padding-top: 60px;
             text-align: center;
             font: 20pt bold 'Helvetica';
             color: #bbb;
+            height:140px;
         }
 
         #video-data {
@@ -140,9 +151,20 @@
             <a class="ui bragit button github-websemantics-vimeo-upload-github"> <i class="github icon"></i> Github </a>
         </div>
         <p class="lead">Enter vimeo access token, name and description then drag your video file into the dotted area below to upload to your vimeo account.</p>
-        <div>
+        <div id="progress-container" class="progress">
+            <div id="progress" class="progress-bar progress-bar-info progress-bar-striped active" role="progressbar" aria-valuenow="46" aria-valuemin="0" aria-valuemax="100" style="width: 0%">&nbsp;0%
+            </div>
+        </div>
+        <div class="row">
+          <div class="col-md-12">
+            <div id="results"></div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-md-8">
             <div class="form-group">
-                <input type="accessToken" id="accessToken" class="form-control" placeholder="Vimeo access token" required autofocus></input>
+                <input type="text" id="accessToken" class="form-control" placeholder="Vimeo access token" required autofocus></input>
+                <div class="help">Create an access token here: <a href="https://developer.vimeo.com/apps" target="_blank">https://developer.vimeo.com/apps</a></div>
             </div>
             <div class="form-group">
                 <input type="text" name="name" id="videoName" class="form-control" placeholder="Video name" value=""></input>
@@ -160,16 +182,15 @@
                     <input type="checkbox" id="make_private" name="make_private"> Make Private </input>
                 </label>
             </div>
+          </div>
+          <div class="col-md-4">
+            <div id="drop_zone">Drop Files Here</div>
+            <br/>
+            <label class="btn btn-block btn-info">
+                Browse&hellip; <input id="browse" type="file" style="display: none;">
+            </label>
+          </div>
         </div>
-        <br>
-        <div class="progress">
-            <div id="progress" class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="46" aria-valuemin="0" aria-valuemax="100" style="width: 0%">
-                0%
-            </div>
-        </div>
-        <div id="drop_zone">Drop files here</div>
-        <br>
-        <div id="results"></div>
     </div>
 
     <footer class="footer">
@@ -178,112 +199,104 @@
         </div>
     </footer>
 
-    <script src="upload.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+    <script type="text/javascript" src="https://cdn.rawgit.com/websemantics/bragit/0.1.2/bragit.js"></script>
+    <script src="vimeo-upload.js"></script>
     <script type="text/javascript">
+
         /**
-         * Called when files are dropped on to the drop target. For each file,
-         * uploads the content to Drive & displays the results when complete.
+         * Called when files are dropped on to the drop target or selected by the browse button.
+         * For each file, uploads the content to Drive & displays the results when complete.
          */
         function handleFileSelect(evt) {
-            evt.stopPropagation();
-            evt.preventDefault();
-            var files = evt.dataTransfer.files; // FileList object.
-            var accessToken = document.getElementById("accessToken").value;
-            var upgrade_to_1080 = document.getElementById("upgrade_to_1080").checked;
-            var make_private = document.getElementById("make_private").checked;
+            evt.stopPropagation()
+            evt.preventDefault()
 
-            // Set Video Data
-            var videoName = document.getElementById("videoName").value;
-            var videoDescription = document.getElementById("videoDescription").value;
+            var files = evt.dataTransfer ? evt.dataTransfer.files : $(this).get(0).files
+            var results = document.getElementById('results')
 
-            // Clear the results div
-            var node = document.getElementById('results');
-            while (node.hasChildNodes()) node.removeChild(node.firstChild);
+            /* Clear the results div */
+            while (results.hasChildNodes()) results.removeChild(results.firstChild)
 
-            // Rest the progress bar
-            updateProgress(0);
+            /* Rest the progress bar and show it */
+            updateProgress(0)
+            document.getElementById('progress-container').style.display = 'block'
 
-            var uploader = new MediaUploader({
+            /* Instantiate Vimeo Uploader */
+            ;(new VimeoUpload({
+                name: document.getElementById('videoName').value,
+                description: document.getElementById('videoDescription').value,
+                private: document.getElementById('make_private').checked,
                 file: files[0],
-                token: accessToken,
-                upgrade_to_1080: upgrade_to_1080,
-                videoData: {
-                    name: (videoName > '') ? videoName : 'Default name',
-                    description: (videoDescription > '') ? videoDescription : 'Default description',
-                    "privacy.view": make_private ? "unlisted" : "anybody" // set privacy
-                },
+                token: document.getElementById('accessToken').value,
+                upgrade_to_1080: document.getElementById('upgrade_to_1080').checked,
                 onError: function(data) {
-
-                    var errorResponse = JSON.parse(data);
-                    message = errorResponse.error;
-
-                    var element = document.createElement("div");
-                    element.setAttribute('class', "alert alert-danger");
-                    element.appendChild(document.createTextNode(message));
-                    document.getElementById('results').appendChild(element);
-
+                    showMessage('<strong>Error</strong>: ' + JSON.parse(data).error, 'danger')
                 },
                 onProgress: function(data) {
-                    updateProgress(data.loaded / data.total);
+                    updateProgress(data.loaded / data.total)
                 },
                 onComplete: function(videoId, index) {
-                    var url = "https://vimeo.com/" + videoId;
-                    var metaEl = null;
+                    var url = 'https://vimeo.com/' + videoId
+
                     if (index > -1) {
-                        url = this.metadata[index].link; // The metadata contains all of the uploaded video(s) details see: https://developer.vimeo.com/api/endpoints/videos#/{video_id}
-                        // add stringify the json object for displaying in a text area
+                        /* The metadata contains all of the uploaded video(s) details see: https://developer.vimeo.com/api/endpoints/videos#/{video_id} */
+                        url = this.metadata[index].link //
+
+                        /* add stringify the json object for displaying in a text area */
                         var pretty = JSON.stringify(this.metadata[index], null, 2)
-                        metaEl = document.createElement('div');
-                        var area = document.createElement('textarea');
-                        area.setAttribute('class', "form-control");
-                        area.setAttribute('rows', "10");
-                        area.setAttribute('disabled', "disabled");
-                        area.appendChild(document.createTextNode(pretty));
-                        metaEl.appendChild(area);
+
+                        console.log(pretty) /* echo server data */
                     }
 
-                    var a = document.createElement('a');
-                    a.appendChild(document.createTextNode(url));
-                    a.setAttribute('href', url);
-
-                    var element = document.createElement("div");
-                    element.setAttribute('class', "alert alert-success");
-                    element.appendChild(a);
-                    element.appendChild(metaEl);
-
-                    document.getElementById('results').appendChild(element);
+                    showMessage('<strong>Upload Successful</strong>: check uploaded video @ <a href="' + url + '">' + url + '</a>. Open the Console for the response details.')
                 }
-            });
-            uploader.upload();
+            })).upload()
+
+            /* local function: show a user message */
+            function showMessage(html, type) {
+                /* hide progress bar */
+                document.getElementById('progress-container').style.display = 'none'
+
+                /* display alert message */
+                var element = document.createElement('div')
+                element.setAttribute('class', 'alert alert-' + (type || 'success'))
+                element.innerHTML = html
+                results.appendChild(element)
+            }
         }
 
         /**
          * Dragover handler to set the drop effect.
          */
         function handleDragOver(evt) {
-            evt.stopPropagation();
-            evt.preventDefault();
-            evt.dataTransfer.dropEffect = 'copy';
+            evt.stopPropagation()
+            evt.preventDefault()
+            evt.dataTransfer.dropEffect = 'copy'
         }
 
-        /**
-         * Wire up drag & drop listeners once page loads
-         */
-        document.addEventListener('DOMContentLoaded', function() {
-            var dropZone = document.getElementById('drop_zone');
-            dropZone.addEventListener('dragover', handleDragOver, false);
-            dropZone.addEventListener('drop', handleFileSelect, false);
-        });;
         /**
          * Updat progress bar.
          */
         function updateProgress(progress) {
-            progress = Math.floor(progress * 100);
-            var element = document.getElementById('progress');
-            element.setAttribute('style', 'width:' + progress + '%');
-            element.innerHTML = progress + '%';
+            progress = Math.floor(progress * 100)
+            var element = document.getElementById('progress')
+            element.setAttribute('style', 'width:' + progress + '%')
+            element.innerHTML = '&nbsp;' + progress + '%'
         }
+        /**
+         * Wire up drag & drop listeners once page loads
+         */
+        document.addEventListener('DOMContentLoaded', function() {
+            var dropZone = document.getElementById('drop_zone')
+            var browse = document.getElementById('browse')
+            dropZone.addEventListener('dragover', handleDragOver, false)
+            dropZone.addEventListener('drop', handleFileSelect, false)
+            browse.addEventListener('change', handleFileSelect, false)
+        })
+
     </script>
+
     <script>
         (function(i, s, o, g, r, a, m) {
             i['GoogleAnalyticsObject'] = r;
@@ -299,8 +312,6 @@
         ga('create', 'UA-57984417-1', 'auto');
         ga('send', 'pageview');
     </script>
-    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
-    <script type="text/javascript" src="https://cdn.rawgit.com/websemantics/bragit/0.1.2/bragit.js"></script>
 </body>
 
 </html>

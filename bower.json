@@ -1,0 +1,24 @@
+{
+  "name": "vimeo-upload",
+  "main": "vimeo-upload.js",
+  "version": "0.1.4",
+  "homepage": "https://github.com/websemantics/vimeo-upload",
+  "authors": [
+    "Adnan Sh. Sagar, PhD. <adnan@websemantics.ca>"
+  ],
+  "description": "Upload videos to your Vimeo account directly from a browser or a Node.js app.",
+  "keywords": [
+    "vimeo",
+    "video",
+    "upload",
+    "node",
+    "browser"
+  ],
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "test",
+    "tests"
+  ]
+}
