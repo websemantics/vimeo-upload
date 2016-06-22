@@ -27,7 +27,8 @@
   },
   "scripts": {
     "deploy": "cd $npm_package_deploy_dist && git push --force --quiet \"https://${GH_TOKEN}@${GH_REF}\" ${npm_package_deploy_branch} > /dev/null 2>&1  ",
-    "predeploy": "mkdir -p ${npm_package_deploy_dist} && cd $npm_package_deploy_dist && git init && git config user.name $npm_package_deploy_name && git config user.email $npm_package_deploy_email && git add -A . && git commit -am \"$npm_package_deploy_message\" "
+    "predeploy": "mkdir -p ${npm_package_deploy_dist} && npm run copy -s&& cd $npm_package_deploy_dist && git init && git config user.name $npm_package_deploy_name && git config user.email $npm_package_deploy_email && git add -A . && git commit -am \"$npm_package_deploy_message\" ",
+    "copy": "cp -r ./img $npm_package_deploy_dist && cp ./index.html $npm_package_deploy_dist && cp ./vimeo-upload.js $npm_package_deploy_dist "
   },
   "author": "Adnan M.Sagar, PhD.",
   "license": "MIT",
