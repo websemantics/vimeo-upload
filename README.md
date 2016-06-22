@@ -33,7 +33,7 @@ npm install vimeo-upload
 Include `vimeo-upload.js` in your index.html.
 
 ```
-<script src="/path/to/vimeo-upload.js"></script>
+<script src="bower_components/vimeo-upload/vimeo-upload.js"></script>
 ```
 
 Create a new `VimeoUpload` initialized with a Blob or File and Vimeo Access Token then call `upload()` to start the upload process.
