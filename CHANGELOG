@@ -1,5 +1,15 @@
+Major code refactoring, support for node and bower packages, enhanced ui
+
+0.1.4
+  date: 2016-06-22
+  changes:
+  - Major code refactoring
+  - Add Node.js support
+  - Add Bower support
+  - Enhanced user experience
+
 0.1.3
-  date: 2016-06-23
+  date: 2016-06-21
   changes:
   - Make video private
   - Add BraGit buttons

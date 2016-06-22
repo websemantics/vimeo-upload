@@ -1,4 +1,4 @@
-script: bash ./deploy.sh
+script: npm run deploy
 language: node_js
 node_js:
 - '0.10'
