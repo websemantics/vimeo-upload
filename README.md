@@ -10,7 +10,7 @@
 [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/websemantics/vimeo-upload/master/LICENSE) [![GitHub forks](https://img.shields.io/github/forks/websemantics/vimeo-upload.svg)](https://github.com/websemantics/vimeo-upload/network) [![GitHub stars](https://img.shields.io/github/stars/websemantics/vimeo-upload.svg)](https://github.com/websemantics/vimeo-upload/stargazers)
 [![Percentage of issues still open](http://isitmaintained.com/badge/open/websemantics/vimeo-upload.svg)](http://isitmaintained.com/project/websemantics/vimeo-upload "Percentage of issues still open")
 
-> Uploading video files directly with vanilla Javascript (XHR/CORS) to your Vimeo account.
+> Upload your videos directly to your Vimeo account with vanilla Javascript.
 
 Try the [LIVE](http://websemantics.github.io/vimeo-upload/) version, ..  drag & drop files to upload them to Vimeo.
 

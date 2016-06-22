@@ -1,252 +1,305 @@
 <html>
-  <head>
-   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css">
-
+<head>
     <meta http-equiv="Content-type" content="text/html;charset=UTF-8">
+    <meta name="viewport" content="width=device-width,shrink-to-fit=no,user-scalable=no,initial-scale=1,minimum-scale=1,minimal-ui">
+    <title>Vimeo Upload</title>
+    <meta name="description" content="Uploading video files directly with vanilla Javascript to your Vimeo account" />
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css">
     <style>
+        html {
+            position: relative;
+            min-height: 100%;
+        }
 
-    /* Sticky footer styles
-    -------------------------------------------------- */
-    html {
-      position: relative;
-      min-height: 100%;
-    }
-    body {
-      /* Margin bottom by footer height */
-      margin-bottom: 60px;
-    }
+        body {
+            margin-bottom: 60px;
+        }
 
-    .logo {
-       width:100%;
-       margin-bottom: 20px;
-    }
+        .page-header {
+            padding-bottom: 18px;
+            margin: 40px 0 12px;
+        }
 
-    .lead {
-      font-size: 18px;
-    }
-    .footer {
-      position: absolute;
-      bottom: 0;
-      padding-top: 15px;
-      width: 100%;
-      /* Set the fixed height of the footer here */
-      height: 60px;
-      color: #ffffff;
-      background-color: #505662;
-    }
+        .logo {
+            width: 100%;
+            margin-bottom: 20px;
+        }
 
+        .lead {
+            font-size: 18px;
+            margin-bottom: 12px;
+        }
 
-    /* Custom page CSS
-    -------------------------------------------------- */
-    /* Not required for template or sticky footer method. */
+        .footer {
+            position: absolute;
+            bottom: 0;
+            padding-top: 15px;
+            width: 100%;
+            /* Set the fixed height of the footer here */
+            height: 60px;
+            color: #505662;
+        }
 
-    .container {
-      width: auto;
-      max-width: 680px;
-      padding: 0 15px;
-    }
-    .container .text-muted {
-      margin: 20px 0;
-    }
+        .footer a.brand {
+            color: #505662;
+        }
 
-    #drop_zone {
-      border: 2px dashed #bbb;
-      -moz-border-radius: 5px;
-      -webkit-border-radius: 5px;
-      border-radius: 5px;
-      padding: 25px;
-      text-align: center;
-      font: 20pt bold 'Helvetica';
-      color: #bbb;
-    }
+        .footer a.brand:hover {
+            color: #393e46;
+            text-decoration: none;
+        }
 
-    p#video-data{
-      margin-top: 1em;
-      font-size: 1.1em;
-      font-weight: 500;
-    }
+        .footer .container {
+            border-top: 1px solid #eee;
+            padding-top: 15px;
+        }
 
+        /* Custom page CSS */
+
+        .container {
+            width: auto;
+            max-width: 680px;
+            padding: 0 15px;
+        }
+
+        .container .text-muted {
+            margin: 20px 0;
+        }
+
+        #drop_zone {
+            border: 2px dashed #bbb;
+            -moz-border-radius: 5px;
+            -webkit-border-radius: 5px;
+            border-radius: 5px;
+            padding: 25px;
+            text-align: center;
+            font: 20pt bold 'Helvetica';
+            color: #bbb;
+        }
+
+        #video-data {
+            margin-top: 1em;
+            font-size: 1.1em;
+            font-weight: 500;
+        }
+
+        /* Bragit buttons, http://websemantics.github.io/bragit/ */
+        .ui.bragit.button,
+        .ui.bragit.buttons .button {
+            background-color: #676f7e;
+            color: #fff!important;
+        }
+
+        .ui.bragit.label {
+            color: #fd8868!important;
+            border-color: #676f7e!important;
+            background-color: #ffffff;
+        }
+
+        .ui.bragit.button:focus,
+        .ui.bragit.buttons .button:focus,
+        .ui.bragit.button:hover,
+        .ui.bragit.buttons .button:hover {
+            background-color: #505662;
+        }
+
+        .ui.bragit.labels .label:focus,
+        .ui.bragit.label:focus,
+        .ui.bragit.labels .label:hover,
+        .ui.bragit.label:hover {
+            color: #505662!important;
+            border-color: #505662!important;
+        }
+
+        .ui.labeled .ui.button .star.icon {
+            color: #F5CC7A!important;
+        }
     </style>
-
-  <script async defer id="github-bjs" src="https://buttons.github.io/buttons.js"></script>
-
-  </head>
-  <body>
-
+</head>
+<body>
     <div class="container">
-      <div class="page-header">
-        <div><img src="img/icon.svg" class="logo"></img></div>
-        <p class="lead">Uploading video files directly with vanilla Javascript to your Vimeo account.</p>
-        <div></div>
-
-<a class="github-button" href="https://github.com/websemantics/vimeo-upload" data-icon="octicon-star" data-count-href="/websemantics/vimeo-upload/stargazers" data-count-api="/repos/websemantics/vimeo-upload#stargazers_count" data-count-aria-label="# stargazers on GitHub" aria-label="Star websemantics/vimeo-upload on GitHub">Star</a>
-
-<a class="github-button" href="https://github.com/ntkme/github-buttons/fork" data-icon="octicon-repo-forked" data-count-href="/ntkme/github-buttons/network" data-count-api="/repos/ntkme/github-buttons#forks_count" data-count-aria-label="# forks on GitHub" aria-label="Fork ntkme/github-buttons on GitHub">Fork</a>
-
-<a class="github-button" href="https://github.com/websemantcis" data-count-href="/websemantcis/followers" data-count-api="/users/websemantcis#followers" data-count-aria-label="# followers on GitHub" aria-label="Follow @websemantcis on GitHub">Follow @websemantcis</a>
-
-      </div>
-      <p class="lead">Fill in your vimeo access token, name and description then drag your video file into the dotted area below to upload to your vimeo account.</p>
-      <div>
-        <div class="form-group">
-          <input type="accessToken" id="accessToken" class="form-control" placeholder="Vimeo access token" required autofocus></input>
+        <div class="page-header">
+            <div><img src="img/icon.svg" class="logo"></img>
+            </div>
+            <p class="lead">Uploading video files directly with vanilla Javascript to your Vimeo account.</p>
+            <a class="ui labeled button github-websemantics-vimeo-upload-stars">
+                <div class="ui bragit button"> <i class="star icon"></i> Stars </div>
+                <div class="ui basic bragit left pointing label"> <i class="spinner loading icon"></i> </div>
+            </a>
+            <a class="ui labeled button github-websemantics-vimeo-upload-forks">
+                <div class="ui bragit button"> <i class="fork icon"></i> Forks </div>
+                <div class="ui basic bragit left pointing label"> <i class="spinner loading icon"></i> </div>
+            </a>
+            <a class="ui labeled button github-websemantics-vimeo-upload-issues">
+                <div class="ui bragit button"> <i class="info circle icon"></i> Issues </div>
+                <div class="ui basic bragit left pointing label"> <i class="spinner loading icon"></i> </div>
+            </a>
+            <a class="ui bragit button github-websemantics-vimeo-upload-download"> <i class="download icon"></i> Download </a>
+            <a class="ui bragit button github-websemantics-vimeo-upload-contributors"> <i class="users icon"></i> Contributors </a>
+            <a class="ui bragit button github-websemantics-vimeo-upload-github"> <i class="github icon"></i> Github </a>
         </div>
-        <div class="form-group">
-          <input type="text" name="name" id="videoName" class="form-control" placeholder="Video name" value=""></input>
+        <p class="lead">Enter vimeo access token, name and description then drag your video file into the dotted area below to upload to your vimeo account.</p>
+        <div>
+            <div class="form-group">
+                <input type="accessToken" id="accessToken" class="form-control" placeholder="Vimeo access token" required autofocus></input>
+            </div>
+            <div class="form-group">
+                <input type="text" name="name" id="videoName" class="form-control" placeholder="Video name" value=""></input>
+            </div>
+            <div class="form-group">
+                <input type="text" name="description" id="videoDescription" class="form-control" placeholder="Video description" value=""></input>
+            </div>
+            <div class="checkbox">
+                <label>
+                    <input type="checkbox" id="upgrade_to_1080" name="upgrade_to_1080"> Upgrade to 1080 </input>
+                </label>
+            </div>
+            <div class="checkbox">
+                <label>
+                    <input type="checkbox" id="make_private" name="make_private"> Make Private </input>
+                </label>
+            </div>
         </div>
-        <div class="form-group">
-          <input type="text" name="description" id="videoDescription" class="form-control" placeholder="Video description" value =""></input>
+        <br>
+        <div class="progress">
+            <div id="progress" class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="46" aria-valuemin="0" aria-valuemax="100" style="width: 0%">
+                0%
+            </div>
         </div>
-        <div class="checkbox">
-          <label>
-            <input type="checkbox" id="upgrade_to_1080" name="upgrade_to_1080"> Upgrade to 1080 </input>
-          </label>
-        </div>
-          <div class="checkbox">
-              <label>
-                  <input type="checkbox" id="make_private" name="make_private"> Make Private </input>
-              </label>
-          </div>
-      </div>
-      <br>
-      <div class="progress">
-        <div id="progress" class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="46" aria-valuemin="0" aria-valuemax="100" style="width: 0%">
-         0%
-        </div>
-      </div>
-      <div id="drop_zone">Drop files here</div>
-      <br>
-      <div id="results"></div>
+        <div id="drop_zone">Drop files here</div>
+        <br>
+        <div id="results"></div>
     </div>
 
     <footer class="footer">
-      <div class="container">
-          <p class="copyright">Built with <img data-preserve-html-node="true" src="img/heart.svg" alt="love" style="width:22px;height:22px;"> by &nbsp;<a href="http://websemantics.ca">
-            <img src="https://raw.githubusercontent.com/websemanticsio/media/gh-pages/assets/png/logo-white-h-h32@2x.png" alt="Web Semantics" style="max-height:28px; height: auto !important" class="retina_logo">
-              </a></p>
-      </div>
+        <div class="container text-center">
+            <p class="copyright">Built with <img data-preserve-html-node="true" src="img/heart.svg" alt="love" style="width:22px;height:22px;"> by &nbsp;<a class="brand" href="http://websemantics.ca">Web Semantics, Inc.</a></p>
+        </div>
     </footer>
 
-     <script src="upload.js"></script>
-     <script type="text/javascript">
-       /**
-        * Called when files are dropped on to the drop target. For each file,
-        * uploads the content to Drive & displays the results when complete.
-        */
-       function handleFileSelect(evt) {
-         evt.stopPropagation();
-         evt.preventDefault();
-         var files = evt.dataTransfer.files; // FileList object.
-         var accessToken = document.getElementById("accessToken").value;
-         var upgrade_to_1080 = document.getElementById("upgrade_to_1080").checked;
-         var make_private = document.getElementById("make_private").checked;
+    <script src="upload.js"></script>
+    <script type="text/javascript">
+        /**
+         * Called when files are dropped on to the drop target. For each file,
+         * uploads the content to Drive & displays the results when complete.
+         */
+        function handleFileSelect(evt) {
+            evt.stopPropagation();
+            evt.preventDefault();
+            var files = evt.dataTransfer.files; // FileList object.
+            var accessToken = document.getElementById("accessToken").value;
+            var upgrade_to_1080 = document.getElementById("upgrade_to_1080").checked;
+            var make_private = document.getElementById("make_private").checked;
 
-         // Set Video Data
-         var videoName = document.getElementById("videoName").value;
-         var videoDescription = document.getElementById("videoDescription").value;
+            // Set Video Data
+            var videoName = document.getElementById("videoName").value;
+            var videoDescription = document.getElementById("videoDescription").value;
 
-         // Clear the results div
-         var node = document.getElementById('results');
-         while (node.hasChildNodes()) node.removeChild(node.firstChild);
+            // Clear the results div
+            var node = document.getElementById('results');
+            while (node.hasChildNodes()) node.removeChild(node.firstChild);
 
-         // Rest the progress bar
-         updateProgress(0);
+            // Rest the progress bar
+            updateProgress(0);
 
-         var uploader = new MediaUploader({
-             file: files[0],
-             token: accessToken,
-             upgrade_to_1080: upgrade_to_1080,
-             videoData: {
-                name: (videoName > '') ? videoName : 'Default name',
-                description: (videoDescription > '') ? videoDescription : 'Default description',
-                "privacy.view": make_private ? "unlisted" : "anybody"  // set privacy
-             },
-             onError: function(data) {
+            var uploader = new MediaUploader({
+                file: files[0],
+                token: accessToken,
+                upgrade_to_1080: upgrade_to_1080,
+                videoData: {
+                    name: (videoName > '') ? videoName : 'Default name',
+                    description: (videoDescription > '') ? videoDescription : 'Default description',
+                    "privacy.view": make_private ? "unlisted" : "anybody" // set privacy
+                },
+                onError: function(data) {
 
-                var errorResponse = JSON.parse(data);
-                message = errorResponse.error;
+                    var errorResponse = JSON.parse(data);
+                    message = errorResponse.error;
 
-                var element = document.createElement("div");
-                element.setAttribute('class', "alert alert-danger");
-                element.appendChild(document.createTextNode(message));
-                document.getElementById('results').appendChild(element);
+                    var element = document.createElement("div");
+                    element.setAttribute('class', "alert alert-danger");
+                    element.appendChild(document.createTextNode(message));
+                    document.getElementById('results').appendChild(element);
 
-             },
-             onProgress: function(data) {
-                updateProgress(data.loaded / data.total);
-             },
-             onComplete: function(videoId, index) {
-                 var url = "https://vimeo.com/" + videoId;
-                 var metaEl = null;
-                 if (index > -1) {
-                     url = this.metadata[index].link; // The metadata contains all of the uploaded video(s) details see: https://developer.vimeo.com/api/endpoints/videos#/{video_id}
-                     // add stringify the json object for displaying in a text area
-                     var pretty = JSON.stringify(this.metadata[index], null, 2)
-                     metaEl = document.createElement('div');
-                     var area = document.createElement('textarea');
-                     area.setAttribute('class', "form-control");
-                     area.setAttribute('rows', "10");
-                     area.setAttribute('disabled', "disabled");
-                     area.appendChild(document.createTextNode(pretty));
-                     metaEl.appendChild(area);
-                 }
+                },
+                onProgress: function(data) {
+                    updateProgress(data.loaded / data.total);
+                },
+                onComplete: function(videoId, index) {
+                    var url = "https://vimeo.com/" + videoId;
+                    var metaEl = null;
+                    if (index > -1) {
+                        url = this.metadata[index].link; // The metadata contains all of the uploaded video(s) details see: https://developer.vimeo.com/api/endpoints/videos#/{video_id}
+                        // add stringify the json object for displaying in a text area
+                        var pretty = JSON.stringify(this.metadata[index], null, 2)
+                        metaEl = document.createElement('div');
+                        var area = document.createElement('textarea');
+                        area.setAttribute('class', "form-control");
+                        area.setAttribute('rows', "10");
+                        area.setAttribute('disabled', "disabled");
+                        area.appendChild(document.createTextNode(pretty));
+                        metaEl.appendChild(area);
+                    }
 
-                var a = document.createElement('a');
-                a.appendChild(document.createTextNode(url));
-                a.setAttribute('href',url);
+                    var a = document.createElement('a');
+                    a.appendChild(document.createTextNode(url));
+                    a.setAttribute('href', url);
 
-                var element = document.createElement("div");
-                element.setAttribute('class', "alert alert-success");
-                element.appendChild(a);
-                element.appendChild(metaEl);
+                    var element = document.createElement("div");
+                    element.setAttribute('class', "alert alert-success");
+                    element.appendChild(a);
+                    element.appendChild(metaEl);
 
-                document.getElementById('results').appendChild(element);
-             }
-         });
-         uploader.upload();
-       }
+                    document.getElementById('results').appendChild(element);
+                }
+            });
+            uploader.upload();
+        }
 
-       /**
-        * Dragover handler to set the drop effect.
-        */
-       function handleDragOver(evt) {
-         evt.stopPropagation();
-         evt.preventDefault();
-         evt.dataTransfer.dropEffect = 'copy';
-       }
+        /**
+         * Dragover handler to set the drop effect.
+         */
+        function handleDragOver(evt) {
+            evt.stopPropagation();
+            evt.preventDefault();
+            evt.dataTransfer.dropEffect = 'copy';
+        }
 
-       /**
-        * Wire up drag & drop listeners once page loads
-        */
-       document.addEventListener('DOMContentLoaded', function () {
-           var dropZone = document.getElementById('drop_zone');
-           dropZone.addEventListener('dragover', handleDragOver, false);
-           dropZone.addEventListener('drop', handleFileSelect, false);
-       });
-;
-       /**
-        * Updat progress bar.
-        */
-       function updateProgress(progress) {
-          progress = Math.floor(progress * 100);
-          var element = document.getElementById('progress');
-          element.setAttribute('style', 'width:'+progress+'%');
-          element.innerHTML = progress+'%';
-       }
-
-
-      progress
-     </script>
-
-     <script>
-        (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
-        (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
-        m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
-        })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
-
+        /**
+         * Wire up drag & drop listeners once page loads
+         */
+        document.addEventListener('DOMContentLoaded', function() {
+            var dropZone = document.getElementById('drop_zone');
+            dropZone.addEventListener('dragover', handleDragOver, false);
+            dropZone.addEventListener('drop', handleFileSelect, false);
+        });;
+        /**
+         * Updat progress bar.
+         */
+        function updateProgress(progress) {
+            progress = Math.floor(progress * 100);
+            var element = document.getElementById('progress');
+            element.setAttribute('style', 'width:' + progress + '%');
+            element.innerHTML = progress + '%';
+        }
+    </script>
+    <script>
+        (function(i, s, o, g, r, a, m) {
+            i['GoogleAnalyticsObject'] = r;
+            i[r] = i[r] || function() {
+                (i[r].q = i[r].q || []).push(arguments)
+            }, i[r].l = 1 * new Date();
+            a = s.createElement(o),
+                m = s.getElementsByTagName(o)[0];
+            a.async = 1;
+            a.src = g;
+            m.parentNode.insertBefore(a, m)
+        })(window, document, 'script', '//www.google-analytics.com/analytics.js', 'ga');
         ga('create', 'UA-57984417-1', 'auto');
         ga('send', 'pageview');
+    </script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+    <script type="text/javascript" src="https://cdn.rawgit.com/websemantics/bragit/0.1.2/bragit.js"></script>
+</body>
 
-     </script>
-  </body>
 </html>

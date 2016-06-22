@@ -1,14 +1,20 @@
+0.1.3
+  date: 2016-06-23
+  changes:
+  - Make video private
+  - Add BraGit buttons
+
 0.1.2
   date: 2016-04-29
   changes:
   - Update logo
   - Integrate with Travis
 
-  0.1.1
-    date: 2016-02-25
-    changes:
-    - Update video data after upload (name & description)
-    - Adding data chunking support for Cordova
+0.1.1
+  date: 2016-02-25
+  changes:
+  - Update video data after upload (name & description)
+  - Adding data chunking support for Cordova
 
 0.1.0
   date: 2015-01-14

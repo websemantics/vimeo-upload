@@ -1,0 +1,22 @@
+{
+  "name": "vimeo-upload",
+  "version": "0.1.3",
+  "description": "Upload your videos directly to your Vimeo account with vanilla Javascript..",
+  "homepage": "https://github.com/websemantics/vimeo-upload#readme",
+  "repository" : {
+    "type" : "git",
+    "url" : "websemantics/vimeo-upload.git"
+  },
+  "bugs": {
+    "url": "https://github.com/websemantics/vimeo-upload/issues"
+  },
+  "keywords": [
+    "vimeo",
+    "video",
+    "upload",
+    "node",
+    "browser"
+  ],
+  "author": "Adnan M.Sagar, PhD.",
+  "license": "MIT"
+}
