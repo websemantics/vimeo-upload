@@ -102,6 +102,11 @@
             <input type="checkbox" id="upgrade_to_1080" name="upgrade_to_1080"> Upgrade to 1080 </input>
           </label>
         </div>
+          <div class="checkbox">
+              <label>
+                  <input type="checkbox" id="make_private" name="make_private"> Make Private </input>
+              </label>
+          </div>
       </div>
       <br>
       <div class="progress">
@@ -134,6 +139,7 @@
          var files = evt.dataTransfer.files; // FileList object.
          var accessToken = document.getElementById("accessToken").value;
          var upgrade_to_1080 = document.getElementById("upgrade_to_1080").checked;
+         var make_private = document.getElementById("make_private").checked;
 
          // Set Video Data
          var videoName = document.getElementById("videoName").value;
@@ -152,7 +158,8 @@
              upgrade_to_1080: upgrade_to_1080,
              videoData: {
                 name: (videoName > '') ? videoName : 'Default name',
-                description: (videoDescription > '') ? videoDescription : 'Default description'
+                description: (videoDescription > '') ? videoDescription : 'Default description',
+                "privacy.view": make_private ? "unlisted" : "anybody"  // set privacy
              },
              onError: function(data) {
 
@@ -168,9 +175,21 @@
              onProgress: function(data) {
                 updateProgress(data.loaded / data.total);
              },
-             onComplete: function(videoId) {
-
-                var url = "https://vimeo.com/"+videoId;
+             onComplete: function(videoId, index) {
+                 var url = "https://vimeo.com/" + videoId;
+                 var metaEl = null;
+                 if (index > -1) {
+                     url = this.metadata[index].link; // The metadata contains all of the uploaded video(s) details see: https://developer.vimeo.com/api/endpoints/videos#/{video_id}
+                     // add stringify the json object for displaying in a text area
+                     var pretty = JSON.stringify(this.metadata[index], null, 2)
+                     metaEl = document.createElement('div');
+                     var area = document.createElement('textarea');
+                     area.setAttribute('class', "form-control");
+                     area.setAttribute('rows', "10");
+                     area.setAttribute('disabled', "disabled");
+                     area.appendChild(document.createTextNode(pretty));
+                     metaEl.appendChild(area);
+                 }
 
                 var a = document.createElement('a');
                 a.appendChild(document.createTextNode(url));
@@ -179,6 +198,7 @@
                 var element = document.createElement("div");
                 element.setAttribute('class', "alert alert-success");
                 element.appendChild(a);
+                element.appendChild(metaEl);
 
                 document.getElementById('results').appendChild(element);
              }
