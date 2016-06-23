@@ -1,7 +1,7 @@
 {
   "name": "vimeo-upload",
   "main": "vimeo-upload.js",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "homepage": "https://github.com/websemantics/vimeo-upload",
   "authors": [
     "Adnan Sh. Sagar, PhD. <adnan@websemantics.ca>"
@@ -14,7 +14,7 @@
     "node",
     "browser"
   ],
-  "license": "MIT",
+  "license": "Apache 2.0",
   "ignore": [
     "**/.*",
     "node_modules",

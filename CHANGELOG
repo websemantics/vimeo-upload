@@ -1,4 +1,7 @@
-Major code refactoring, support for node and bower packages, enhanced ui
+0.1.5
+  date: 2016-06-22
+  changes:
+  - Change license to Apache 2.0 to confirm with Google cors-upload-sample original source code
 
 0.1.4
   date: 2016-06-22
