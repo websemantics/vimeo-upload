@@ -22,7 +22,7 @@ Try it [LIVE](http://websemantics.github.io/vimeo-upload/)
 
 Using Bower
 ```
-Bower install vimeo-upload
+bower install vimeo-upload
 ```
 
 Or npm
