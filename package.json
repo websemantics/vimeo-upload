@@ -1,6 +1,6 @@
 {
   "name": "vimeo-upload",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "Upload videos to your Vimeo account and update their metadata directly from a browser or a Node.js app.",
   "main": "vimeo-upload.js",
   "homepage": "https://github.com/websemantics/vimeo-upload#readme",
