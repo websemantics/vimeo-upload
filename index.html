@@ -172,14 +172,12 @@
             <div class="form-group">
                 <input type="text" name="description" id="videoDescription" class="form-control" placeholder="Video description" value=""></input>
             </div>
-            <div class="checkbox">
-                <label>
-                    <input type="checkbox" id="upgrade_to_1080" name="upgrade_to_1080"> Upgrade to 1080 </input>
-                </label>
+            <div class="form-group">
+                <input type="text" name="privacy" id="videoPrivacy" class="form-control" value="anybody"></input>
             </div>
             <div class="checkbox">
                 <label>
-                    <input type="checkbox" id="make_private" name="make_private"> Make Private </input>
+                    <input type="checkbox" id="upgrade_to_1080" name="upgrade_to_1080"> Upgrade to 1080 </input>
                 </label>
             </div>
           </div>
@@ -226,7 +224,7 @@
             ;(new VimeoUpload({
                 name: document.getElementById('videoName').value,
                 description: document.getElementById('videoDescription').value,
-                private: document.getElementById('make_private').checked,
+                privacy: document.getElementById('videoPrivacy').value,
                 file: files[0],
                 token: document.getElementById('accessToken').value,
                 upgrade_to_1080: document.getElementById('upgrade_to_1080').checked,
