@@ -6,8 +6,6 @@ import {Header} from "./header";
 
 export class Request {
 
-    public startTime: number = -1;
-
     constructor(
         public method: string,
         public url: string,

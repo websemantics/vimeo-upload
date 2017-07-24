@@ -5,11 +5,11 @@
 export class Response {
 
     public range: string = null;
-
+    public duration: number = -1;
+    
     constructor(
         public status: number,
         public statusText: string,
-        public data: any = null,
-        public duration: number = null
+        public data: any = null
     ){}
 }

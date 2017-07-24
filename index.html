@@ -208,27 +208,31 @@
 
         console.log(VimeoUpload);
 
-        var vs = new VimeoUpload();
+        var vimeoUpload = new VimeoUpload();
 
-        VimeoUpload.On("chunkprogresschanged", function(event){
+        vimeoUpload.on("chunkprogresschanged", function(event){
             console.log("Chunk progress called " + event.detail);
             var progress = event.detail;
-            chunkProgress.setAttribute('style', 'width:' + progress + '%')
+            chunkProgress.setAttribute('style', 'width:' + progress + '%');
             chunkProgress.innerHTML = '&nbsp;' + progress + '%'
 
         });
 
-        VimeoUpload.On("totalprogresschanged", function(event){
+        vimeoUpload.on("totalprogresschanged", function(event){
             var progress = event.detail;
-            totalProgress.setAttribute('style', 'width:' + progress + '%')
+            totalProgress.setAttribute('style', 'width:' + progress + '%');
             totalProgress.innerHTML = '&nbsp;' + progress + '%'
         });
 
-        VimeoUpload.On("estimatedtimechanged", function(event){
-            estimatedTimeElement.innerText = event.detail + " seconds left.";
+        vimeoUpload.on("estimatedtimechanged", function(event){
+            estimatedTimeElement.innerText = "Total " + event.detail.seconds + " seconds left, string format: " + event.detail.timeFormat;
         });
 
-        VimeoUpload.On("estimateduploadspeedchanged", function(event){
+        vimeoUpload.on("estimatedchunktimechanged", function(event){
+            estimatedTimeElement.innerText = "Chunk " + event.detail.seconds + " seconds left, string format: " + event.detail.timeFormat;
+        });
+
+        vimeoUpload.on("estimateduploadspeedchanged", function(event){
             estimatedUploadSpeedElement.innerText = event.detail + " m/s";
         });
 
@@ -241,7 +245,7 @@
 
             var files = evt.dataTransfer ? evt.dataTransfer.files : $(this).get(0).files;
 
-            vs.start({
+            vimeoUpload.start({
                 name: document.getElementById('videoName').value,
                 description: document.getElementById('videoDescription').value,
                 private: document.getElementById('make_private').checked,

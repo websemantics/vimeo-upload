@@ -11,14 +11,17 @@ export class TicketService {
     public ticket:Ticket;
 
     constructor(
-        public token:     string
+        public token:     string,
+        public httpService: HttpService
     ){}
 
     public open<T>(): Promise<T> {
-        return new HttpService("POST", VIMEO_ROUTES.TICKET(), JSON.stringify({ type: 'streaming' }), {
+        let request = HttpService.CreateRequest("POST", VIMEO_ROUTES.TICKET(), JSON.stringify({ type: 'streaming' }), {
             Authorization: `Bearer ${this.token}`,
             'Content-Type': 'application/json'
-        }).send();
+        });
+
+        return this.httpService.send(request);
     }
 
     public save(response: Response){
@@ -32,9 +35,10 @@ export class TicketService {
     }
 
     public close<T>(): Promise<T>{
-        return new HttpService("DELETE", VIMEO_ROUTES.DEFAULT(this.ticket.completeUri), null, {
+        let request = HttpService.CreateRequest("DELETE", VIMEO_ROUTES.DEFAULT(this.ticket.completeUri), null, {
             Authorization: `Bearer ${this.token}`
-        }).send();
+        });
+        return this.httpService.send(request)
     }
 }
 

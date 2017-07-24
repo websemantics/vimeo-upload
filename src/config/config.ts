@@ -10,13 +10,15 @@ export const DEFAULT_VALUES = {
   name:                     "",
   description:              "",
   file:                     null,
-  upgrade_to_1080:          false
+  upgrade_to_1080:          false,
+  timeInterval:             150
 };
 
 export const DEFAULT_EVENTS = {
   chunkprogresschanged: (event: CustomEvent)=>console.log(`Default: Chunk Progress Update: ${event.detail}/100`),
   totalprogresschanged: (event: CustomEvent)=>console.log(`Default: Total Progress Update: ${event.detail}/100`),
   estimatedtimechanged: (event: CustomEvent)=>console.log(`Default: Estimated Time Update: ${event.detail}`),
+  estimatedchunktimechanged: (event: CustomEvent)=>console.log(`Default: Estimated Chunk Time Update: ${event.detail}`),
   estimateduploadspeedchanged: (event: CustomEvent)=>console.log(`Default: Estimated Upload Speed Changed: ${event.detail} mb/s`),
   uploadaborted: (event: CustomEvent)=>console.log(`Default: Upload aborted detected.`)
 };

@@ -7,6 +7,8 @@ import {TimeUtil} from "./utils/utils";
 import {ValidatorService} from "./services/validator/validator.service";
 import {MediaService} from "./services/media/media.service";
 import {Response} from "./entities/response";
+import {TimerService} from "./services/timer/timer.service";
+import {HttpService} from "./services/http/http.service";
 /**
  * Created by Grimbode on 12/07/2017.
  */
@@ -18,6 +20,8 @@ export class App {
     public uploadService: UploadService;
     public validatorService: ValidatorService;
     public mediaService: MediaService;
+    public timerService: TimerService;
+    public httpService: HttpService;
 
     constructor(options: any = {}){
 
@@ -33,9 +37,18 @@ export class App {
                     console.warn(`Unrecognized property: ${prop}`);
             }
         }
-       
+        this.timerService = new TimerService(
+            DEFAULT_VALUES.timeInterval,
+            this.chunkService
+        );
+
+        this.httpService = new HttpService(
+            this.timerService
+        );
+
         this.ticketService = new TicketService(
-            DEFAULT_VALUES.token
+            DEFAULT_VALUES.token,
+            this.httpService
         );
 
         this.mediaService = new MediaService(
@@ -50,13 +63,15 @@ export class App {
 
         this.uploadService = new UploadService(
             this.mediaService,
-            this.ticketService
+            this.ticketService,
+            this.httpService
         );
 
         this.validatorService = new ValidatorService(
             DEFAULT_VALUES.supportedFiles
         );
         
+
 
     }
     
@@ -73,8 +88,8 @@ export class App {
         this.ticketService.open()
             .then((response: Response)=>{
                 console.log(response);
-
                 this.ticketService.save(response);
+                this.timerService.start();
                 this.process();
             }).catch((error)=>{
                 console.log(`Error occured while generating ticket. ${error}`);
@@ -86,11 +101,8 @@ export class App {
         let chunk = this.chunkService.create();
         console.log(chunk.content, chunk.contentRange);
         this.uploadService.send(chunk).then((response: Response) => {
-            //TODO: Calculate the correct time.
-            EventService.Dispatch("estimatedtimechanged", response.duration);
-            EventService.Dispatch("estimateduploadspeedchanged", this.chunkService.size/response.duration);
-            let seconds = TimeUtil.TimeToSeconds(response.duration);
-            this.chunkService.updateSize(seconds);
+            console.log(`DURATION ${this.timerService.getChunkUploadDuration()}`)
+            this.chunkService.updateSize(this.timerService.getChunkUploadDuration());
             this.check();
         }).catch(error=>{
             console.error(`Error sending chunk`, error);
@@ -140,7 +152,7 @@ export class App {
         EventService.Dispatch("uploadaborted");
         this.done();
     }
-    public static On(eventName: string, callback: any = null){
+    public on(eventName: string, callback: any = null){
         if(!EventService.Exists(eventName)) return;
         if(callback === null){
             callback = EventService.GetDefault(eventName);
@@ -148,7 +160,7 @@ export class App {
         EventService.Add(eventName, callback);
     }
     
-    public static Off(eventName: string, callback: any = null){
+    public off(eventName: string, callback: any = null){
         if(!EventService.Exists(eventName)) return;
         if(callback === null){
             callback = EventService.GetDefault(eventName);
