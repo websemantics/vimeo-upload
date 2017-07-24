@@ -40,12 +40,21 @@ Include `vimeo-upload.js` in your index.html.
 Create a new `VimeoUpload` initialized with a Blob or File and Vimeo Access Token then call `upload()` to start the upload process.
 
 ```javascript
-var uploader = new VimeoUpload({
-  file: file,
-  token: accessToken,
-});
 
-uploader.upload();
+var options = {
+    preferredUploadDuration:  30,
+    chunkSize:                1024*1024,
+    token:                    "TOKEN_STRING_HERE", //Required on start.
+    supportedFiles:           ["mov", "mpeg4", "mp4", "avi", "wmv", "mpegps", "flv", "3gpp", "webm"],
+    name:                     "VIDEO_NAME",
+    description:              "VIDEO_DESCRIPTION",
+    file:                     null, //Required on start.
+    upgrade_to_1080:          false
+}
+
+var uploader = new VimeoUpload(options);
+uploader.start(options);
+
 ```
 
 Your access token need to be authorized by Vimeo. Create new Vimeo access token [here](https://developer.vimeo.com/apps).
