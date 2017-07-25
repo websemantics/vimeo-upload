@@ -81,15 +81,15 @@ var response_1 = __webpack_require__(8);
  * Created by kfaulhaber on 31/03/2017.
  */
 var HttpService = (function () {
-    function HttpService(timerService) {
-        this.timerService = timerService;
+    function HttpService(statService) {
+        this.statService = statService;
     }
     HttpService.prototype.send = function (request, emitProgress) {
         var _this = this;
         if (emitProgress === void 0) { emitProgress = false; }
         return new Promise(function (resolve, reject) {
             var xhr = new XMLHttpRequest();
-            var timeData = _this.timerService.create();
+            var statData = _this.statService.create();
             xhr.open(request.method, request.url, true);
             request.headers.forEach(function (header) { return xhr.setRequestHeader(header.title, header.value); });
             window.addEventListener("uploadaborted", function () {
@@ -97,8 +97,8 @@ var HttpService = (function () {
             }, false);
             xhr.onload = function () {
                 var end = new Date();
-                timeData.end = end;
-                timeData.done = true;
+                statData.end = end;
+                statData.done = true;
                 var data = null;
                 try {
                     data = JSON.parse(xhr.response);
@@ -123,12 +123,12 @@ var HttpService = (function () {
                 reject(new response_1.Response(xhr.status, xhr.statusText, xhr.response || null));
             };
             if (emitProgress) {
-                _this.timerService.save(timeData);
+                _this.statService.save(statData);
                 xhr.upload.addEventListener("progress", function (data) {
                     if (data.lengthComputable) {
-                        var percent = Math.floor(data.loaded / data.total * 100);
-                        timeData.percent = percent;
-                        timeData.end = new Date();
+                        statData.loaded = data.loaded;
+                        statData.total = data.total;
+                        statData.end = new Date();
                     }
                 });
             }
@@ -167,7 +167,7 @@ exports.HttpService = HttpService;
  */
 exports.__esModule = true;
 exports.DEFAULT_VALUES = {
-    preferredUploadDuration: 30,
+    preferredUploadDuration: 20,
     chunkSize: 1024 * 1024,
     token: "TOKEN_STRING_HERE",
     supportedFiles: ["mov", "mpeg4", "mp4", "avi", "wmv", "mpegps", "flv", "3gpp", "webm"],
@@ -230,15 +230,15 @@ exports.EventService = EventService;
 "use strict";
 
 exports.__esModule = true;
-var ticket_service_1 = __webpack_require__(15);
+var ticket_service_1 = __webpack_require__(16);
 var chunk_service_1 = __webpack_require__(13);
 var upload_service_1 = __webpack_require__(17);
 var config_1 = __webpack_require__(1);
 var event_service_1 = __webpack_require__(2);
 var validator_service_1 = __webpack_require__(18);
 var media_service_1 = __webpack_require__(14);
-var timer_service_1 = __webpack_require__(16);
 var http_service_1 = __webpack_require__(0);
+var stat_service_1 = __webpack_require__(15);
 /**
  * Created by Grimbode on 12/07/2017.
  */
@@ -257,11 +257,11 @@ var App = (function () {
                     console.warn("Unrecognized property: " + prop);
             }
         }
-        this.timerService = new timer_service_1.TimerService(config_1.DEFAULT_VALUES.timeInterval, this.chunkService);
-        this.httpService = new http_service_1.HttpService(this.timerService);
-        this.ticketService = new ticket_service_1.TicketService(config_1.DEFAULT_VALUES.token, this.httpService);
         this.mediaService = new media_service_1.MediaService(config_1.DEFAULT_VALUES);
         this.chunkService = new chunk_service_1.ChunkService(this.mediaService, config_1.DEFAULT_VALUES.preferredUploadDuration, config_1.DEFAULT_VALUES.chunkSize);
+        this.statService = new stat_service_1.StatService(config_1.DEFAULT_VALUES.timeInterval, this.chunkService);
+        this.httpService = new http_service_1.HttpService(this.statService);
+        this.ticketService = new ticket_service_1.TicketService(config_1.DEFAULT_VALUES.token, this.httpService);
         this.uploadService = new upload_service_1.UploadService(this.mediaService, this.ticketService, this.httpService);
         this.validatorService = new validator_service_1.ValidatorService(config_1.DEFAULT_VALUES.supportedFiles);
     }
@@ -279,7 +279,7 @@ var App = (function () {
             .then(function (response) {
             console.log(response);
             _this.ticketService.save(response);
-            _this.timerService.start();
+            _this.statService.start();
             _this.process();
         })["catch"](function (error) {
             console.log("Error occured while generating ticket. " + error);
@@ -291,8 +291,7 @@ var App = (function () {
         var chunk = this.chunkService.create();
         console.log(chunk.content, chunk.contentRange);
         this.uploadService.send(chunk).then(function (response) {
-            console.log("DURATION " + _this.timerService.getChunkUploadDuration());
-            _this.chunkService.updateSize(_this.timerService.getChunkUploadDuration());
+            _this.chunkService.updateSize(_this.statService.getChunkUploadDuration());
             _this.check();
         })["catch"](function (error) {
             console.error("Error sending chunk", error);
@@ -305,7 +304,6 @@ var App = (function () {
                 case 308:
                     console.log("New range " + response.range);
                     _this.chunkService.updateOffset(response.range);
-                    event_service_1.EventService.Dispatch("totalprogresschanged", _this.chunkService.getPercent());
                     if (_this.chunkService.isDone()) {
                         _this.done();
                         return;
@@ -328,9 +326,13 @@ var App = (function () {
     };
     //TODO: find a way to reset
     App.prototype.done = function () {
+        var _this = this;
+        this.statService.totalStatData.done = true;
         this.ticketService.close().then(function (response) {
+            _this.statService.stop();
             console.log("Delete success:", response);
         })["catch"](function (error) {
+            _this.statService.stop();
             console.warn("Delete failed:", error);
         });
     };
@@ -483,6 +485,32 @@ exports.Response = Response;
 "use strict";
 
 /**
+ * Created by kfaulhaber on 24/07/2017.
+ */
+exports.__esModule = true;
+var StatData = (function () {
+    function StatData(start, end, loaded, total, done) {
+        if (loaded === void 0) { loaded = 0; }
+        if (total === void 0) { total = 0; }
+        if (done === void 0) { done = false; }
+        this.start = start;
+        this.end = end;
+        this.loaded = loaded;
+        this.total = total;
+        this.done = done;
+    }
+    return StatData;
+}());
+exports.StatData = StatData;
+
+
+/***/ }),
+/* 10 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+/**
  * Created by kfaulhaber on 13/07/2017.
  */
 exports.__esModule = true;
@@ -497,30 +525,6 @@ var Ticket = (function () {
     return Ticket;
 }());
 exports.Ticket = Ticket;
-
-
-/***/ }),
-/* 10 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-/**
- * Created by kfaulhaber on 24/07/2017.
- */
-exports.__esModule = true;
-var TimeData = (function () {
-    function TimeData(start, end, percent, done) {
-        if (percent === void 0) { percent = 0; }
-        if (done === void 0) { done = false; }
-        this.start = start;
-        this.end = end;
-        this.percent = percent;
-        this.done = done;
-    }
-    return TimeData;
-}());
-exports.TimeData = TimeData;
 
 
 /***/ }),
@@ -577,19 +581,28 @@ var ChunkService = (function () {
         this.offset = offset;
     }
     ChunkService.prototype.updateSize = function (uploadDuration) {
-        console.log(this.size, uploadDuration, this.preferredUploadDuration);
-        this.size = Math.floor((this.size * this.preferredUploadDuration) / uploadDuration);
+        var adjust = 1;
+        if (uploadDuration / this.preferredUploadDuration < 0.5) {
+            console.log("Adjusting");
+            adjust = 0.5;
+        }
+        else if (uploadDuration / this.preferredUploadDuration > 2) {
+            adjust = 2;
+        }
+        console.log("Upload duration", uploadDuration);
+        this.size = Math.floor((this.size * this.preferredUploadDuration) / uploadDuration * adjust);
     };
     ChunkService.prototype.create = function () {
         var end = Math.min(this.offset + this.size, this.mediaService.media.file.size);
+        //TODO: Simplify
+        if (end - this.offset !== this.size) {
+            this.updateSize(end - this.offset);
+        }
         var content = this.mediaService.media.file.slice(this.offset, end);
         return new chunk_1.Chunk(content, "bytes " + this.offset + "-" + end + "/" + this.mediaService.media.file.size);
     };
     ChunkService.prototype.updateOffset = function (range) {
         this.offset = parseInt(range.match(/\d+/g).pop(), 10) + 1;
-    };
-    ChunkService.prototype.getPercent = function () {
-        return Math.floor(this.offset / this.mediaService.media.file.size * 100);
     };
     ChunkService.prototype.isDone = function () {
         return this.offset >= this.mediaService.media.file.size;
@@ -638,8 +651,108 @@ exports.MediaService = MediaService;
 "use strict";
 
 exports.__esModule = true;
+var event_service_1 = __webpack_require__(2);
+var utils_1 = __webpack_require__(19);
+var stat_data_1 = __webpack_require__(9);
+/**
+ * Created by Grimbode on 14/07/2017.
+ */
+var StatService = (function () {
+    function StatService(timeInterval, chunkService) {
+        this.timeInterval = timeInterval;
+        this.chunkService = chunkService;
+        this.si = -1;
+        this.previousTotalPercent = 0;
+    }
+    StatService.prototype.start = function () {
+        this.totalStatData = this.create(true);
+        this.startInterval();
+    };
+    StatService.prototype.create = function (isTotal) {
+        if (isTotal === void 0) { isTotal = false; }
+        var date = new Date();
+        var size = (isTotal) ? this.chunkService.mediaService.media.file.size : this.chunkService.size;
+        var statData = new stat_data_1.StatData(date, date, 0, size);
+        return statData;
+    };
+    StatService.prototype.save = function (timeData) {
+        this.chunkStatData = timeData;
+    };
+    StatService.prototype.estimateTimeLeft = function (statData) {
+        var nTime = Math.floor(new Date().getTime() - statData.start.getTime());
+        var ratio = this.calculateRatio(statData);
+        return (ratio > 0) ? Math.floor(nTime * ratio) : nTime;
+    };
+    StatService.prototype.calculateRatio = function (statData) {
+        return statData.loaded / statData.total;
+    };
+    StatService.prototype.calculatePercent = function (statData) {
+        return Math.floor(this.calculateRatio(statData) * 100);
+    };
+    StatService.prototype.calculateUploadSpeed = function (seconds) {
+        return (seconds > 0) ? Math.floor(this.chunkStatData.total / seconds) : 0;
+    };
+    StatService.prototype.updateTotal = function () {
+        this.totalStatData.loaded += this.chunkStatData.total;
+    };
+    StatService.prototype.startInterval = function () {
+        var _this = this;
+        if (this.si > -1) {
+            this.stop();
+        }
+        this.si = setInterval(function () {
+            var chunkPercent = 100;
+            if (_this.chunkStatData.done) {
+                _this.updateTotal();
+                _this.chunkStatData.total = _this.chunkStatData.loaded = 0;
+            }
+            else {
+                chunkPercent = _this.calculatePercent(_this.chunkStatData);
+            }
+            _this.totalStatData.end = _this.chunkStatData.end;
+            _this.previousTotalPercent = Math.max(_this.totalStatData.loaded + _this.chunkStatData.loaded, _this.previousTotalPercent);
+            var totalPercent = _this.calculatePercent(new stat_data_1.StatData(_this.totalStatData.start, _this.totalStatData.end, _this.previousTotalPercent, _this.totalStatData.total));
+            var chunkTimeLeft = (!_this.chunkStatData || _this.chunkStatData.done) ? 0 : _this.estimateTimeLeft(_this.chunkStatData);
+            var chunkSecondsLeft = utils_1.TimeUtil.TimeToSeconds(chunkTimeLeft);
+            var timeLeft = _this.estimateTimeLeft(_this.totalStatData);
+            var secondsLeft = utils_1.TimeUtil.TimeToSeconds(timeLeft);
+            var uploadSpeed = _this.calculateUploadSpeed(chunkSecondsLeft);
+            event_service_1.EventService.Dispatch("estimatedtimechanged", {
+                seconds: secondsLeft,
+                timeFormat: utils_1.TimeUtil.MilisecondsToString(timeLeft)
+            });
+            event_service_1.EventService.Dispatch("estimatedchunktimechanged", {
+                seconds: chunkSecondsLeft,
+                timeFormat: utils_1.TimeUtil.MilisecondsToString(chunkTimeLeft)
+            });
+            event_service_1.EventService.Dispatch("chunkprogresschanged", chunkPercent);
+            if (_this.totalStatData.done) {
+                totalPercent = 100;
+            }
+            event_service_1.EventService.Dispatch("estimateduploadspeedchanged", uploadSpeed);
+            event_service_1.EventService.Dispatch("totalprogresschanged", totalPercent);
+        }, this.timeInterval);
+    };
+    StatService.prototype.stop = function () {
+        clearInterval(this.si);
+    };
+    StatService.prototype.getChunkUploadDuration = function () {
+        return utils_1.TimeUtil.TimeToSeconds(this.chunkStatData.end.getTime() - this.chunkStatData.start.getTime());
+    };
+    return StatService;
+}());
+exports.StatService = StatService;
+
+
+/***/ }),
+/* 16 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+exports.__esModule = true;
 var http_service_1 = __webpack_require__(0);
-var ticket_1 = __webpack_require__(9);
+var ticket_1 = __webpack_require__(10);
 var routes_1 = __webpack_require__(12);
 /**
  * Created by kfaulhaber on 30/06/2017.
@@ -668,73 +781,6 @@ var TicketService = (function () {
     return TicketService;
 }());
 exports.TicketService = TicketService;
-
-
-/***/ }),
-/* 16 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-exports.__esModule = true;
-var event_service_1 = __webpack_require__(2);
-var utils_1 = __webpack_require__(19);
-var time_data_1 = __webpack_require__(10);
-/**
- * Created by Grimbode on 14/07/2017.
- */
-var TimerService = (function () {
-    function TimerService(timeInterval, chunkService) {
-        this.timeInterval = timeInterval;
-        this.chunkService = chunkService;
-        this.si = -1;
-    }
-    TimerService.prototype.start = function () {
-        this.totalTimeData = this.create();
-        this.startInterval();
-    };
-    TimerService.prototype.create = function () {
-        var date = new Date();
-        var timeData = new time_data_1.TimeData(date, date);
-        return timeData;
-    };
-    TimerService.prototype.save = function (timeData) {
-        this.chunkTimeData = timeData;
-    };
-    TimerService.prototype.estimateTimeLeft = function (timeData, offset) {
-        if (offset === void 0) { offset = 0; }
-        var nTime = Math.floor(new Date().getTime() - timeData.start.getTime());
-        var totalEstimatedDuration = Math.floor(nTime * 100 / timeData.percent);
-        return totalEstimatedDuration - nTime - offset;
-    };
-    TimerService.prototype.startInterval = function () {
-        var _this = this;
-        if (this.si > -1) {
-            clearInterval(this.si);
-        }
-        this.si = setInterval(function () {
-            var chunkTimeLeft = (!_this.chunkTimeData || _this.chunkTimeData.done) ? 0 : _this.estimateTimeLeft(_this.chunkTimeData);
-            var chunkSecondsLeft = utils_1.TimeUtil.TimeToSeconds(chunkTimeLeft);
-            var timeLeft = _this.estimateTimeLeft(_this.totalTimeData, chunkTimeLeft);
-            var secondsLeft = utils_1.TimeUtil.TimeToSeconds(timeLeft);
-            event_service_1.EventService.Dispatch("estimatedtimechanged", {
-                seconds: secondsLeft,
-                timeFormat: utils_1.TimeUtil.TimeToString(timeLeft)
-            });
-            event_service_1.EventService.Dispatch("estimatedchunktimechanged", {
-                seconds: chunkSecondsLeft,
-                timeFormat: utils_1.TimeUtil.TimeToString(chunkTimeLeft)
-            });
-            event_service_1.EventService.Dispatch("chunkprogresschanged", _this.chunkTimeData.percent);
-            event_service_1.EventService.Dispatch("estimateduploadspeedchanged", _this.chunkService.size / chunkSecondsLeft);
-        }, this.timeInterval);
-    };
-    TimerService.prototype.getChunkUploadDuration = function () {
-        return utils_1.TimeUtil.TimeToSeconds(this.chunkTimeData.end.getTime() - this.chunkTimeData.start.getTime());
-    };
-    return TimerService;
-}());
-exports.TimerService = TimerService;
 
 
 /***/ }),
@@ -825,6 +871,12 @@ var TimeUtil = (function () {
     TimeUtil.TimeToString = function (time) {
         var date = new Date(null);
         date.setTime(time);
+        return date.toISOString().substr(11, 8);
+    };
+    TimeUtil.MilisecondsToString = function (miliseconds) {
+        var seconds = TimeUtil.TimeToSeconds(miliseconds);
+        var date = new Date(null);
+        date.setSeconds(seconds);
         return date.toISOString().substr(11, 8);
     };
     return TimeUtil;

@@ -133,6 +133,7 @@
         <p class="lead">Enter vimeo access token, name and description then drag your video file into the dotted area below to upload to your vimeo account.</p>
 
         <p id="estimated-time-changed"></p>
+        <p id="estimated-chunk-time-changed"></p>
         <p id="estimated-upload-speed-changed"></p>
 
         <div id="progress-bars-container">
@@ -203,6 +204,7 @@
         var progressBarsContainer = document.getElementById("progress-bars-container");
         var estimatedUploadSpeedElement = document.getElementById("estimated-upload-speed-changed");
         var estimatedTimeElement = document.getElementById("estimated-time-changed");
+        var estimatedChunkTimeElement = document.getElementById("estimated-chunk-time-changed");
 
         progressBarsContainer.style.display = "none";
 
@@ -229,7 +231,7 @@
         });
 
         vimeoUpload.on("estimatedchunktimechanged", function(event){
-            estimatedTimeElement.innerText = "Chunk " + event.detail.seconds + " seconds left, string format: " + event.detail.timeFormat;
+            estimatedChunkTimeElement.innerText = "Chunk " + event.detail.seconds + " seconds left, string format: " + event.detail.timeFormat;
         });
 
         vimeoUpload.on("estimateduploadspeedchanged", function(event){

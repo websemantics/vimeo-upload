@@ -3,7 +3,7 @@
  */
 
 export const DEFAULT_VALUES = {
-  preferredUploadDuration:  30,
+  preferredUploadDuration:  20,
   chunkSize:                1024*1024,
   token:                    "TOKEN_STRING_HERE",
   supportedFiles:           ["mov", "mpeg4", "mp4", "avi", "wmv", "mpegps", "flv", "3gpp", "webm"],

@@ -17,13 +17,18 @@ export class ChunkService {
     
     public updateSize(uploadDuration: number) {
 
-        console.log(this.size, uploadDuration, this.preferredUploadDuration);
-
-        this.size = Math.floor((this.size*this.preferredUploadDuration)/uploadDuration);
+        let ratio = uploadDuration/this.preferredUploadDuration;
+        this.size = Math.floor(((this.size*this.preferredUploadDuration)/uploadDuration)-);
     }
     
     public create(): Chunk{
         let end = Math.min(this.offset + this.size, this.mediaService.media.file.size);
+
+        //TODO: Simplify
+        if(end-this.offset !== this.size){
+            this.updateSize(end-this.offset);
+        }
+
         let content = this.mediaService.media.file.slice(this.offset, end);
 
         return new Chunk(
@@ -34,10 +39,6 @@ export class ChunkService {
     
     public updateOffset(range: string){
         this.offset = parseInt(range.match(/\d+/g).pop(), 10) + 1;
-    }
-
-    public getPercent(): number {
-        return Math.floor(this.offset/this.mediaService.media.file.size * 100);
     }
 
     public isDone(): boolean {

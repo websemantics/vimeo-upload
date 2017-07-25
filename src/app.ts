@@ -3,15 +3,15 @@ import {ChunkService} from "./services/chunk/chunk.service";
 import {UploadService} from "./services/upload/upload.service";
 import {DEFAULT_VALUES} from "./config/config";
 import {EventService} from "./services/event/event.service";
-import {TimeUtil} from "./utils/utils";
 import {ValidatorService} from "./services/validator/validator.service";
 import {MediaService} from "./services/media/media.service";
 import {Response} from "./entities/response";
-import {TimerService} from "./services/timer/timer.service";
 import {HttpService} from "./services/http/http.service";
+import {StatService} from "./services/stat/stat.service";
 /**
  * Created by Grimbode on 12/07/2017.
  */
+
 
 export class App {
     
@@ -20,7 +20,7 @@ export class App {
     public uploadService: UploadService;
     public validatorService: ValidatorService;
     public mediaService: MediaService;
-    public timerService: TimerService;
+    public statService: StatService;
     public httpService: HttpService;
 
     constructor(options: any = {}){
@@ -37,19 +37,6 @@ export class App {
                     console.warn(`Unrecognized property: ${prop}`);
             }
         }
-        this.timerService = new TimerService(
-            DEFAULT_VALUES.timeInterval,
-            this.chunkService
-        );
-
-        this.httpService = new HttpService(
-            this.timerService
-        );
-
-        this.ticketService = new TicketService(
-            DEFAULT_VALUES.token,
-            this.httpService
-        );
 
         this.mediaService = new MediaService(
             DEFAULT_VALUES
@@ -60,6 +47,22 @@ export class App {
             DEFAULT_VALUES.preferredUploadDuration,
             DEFAULT_VALUES.chunkSize
         );
+
+        this.statService = new StatService(
+            DEFAULT_VALUES.timeInterval,
+            this.chunkService
+        );
+
+        this.httpService = new HttpService(
+            this.statService
+        );
+
+        this.ticketService = new TicketService(
+            DEFAULT_VALUES.token,
+            this.httpService
+        );
+
+
 
         this.uploadService = new UploadService(
             this.mediaService,
@@ -89,7 +92,7 @@ export class App {
             .then((response: Response)=>{
                 console.log(response);
                 this.ticketService.save(response);
-                this.timerService.start();
+                this.statService.start();
                 this.process();
             }).catch((error)=>{
                 console.log(`Error occured while generating ticket. ${error}`);
@@ -101,8 +104,7 @@ export class App {
         let chunk = this.chunkService.create();
         console.log(chunk.content, chunk.contentRange);
         this.uploadService.send(chunk).then((response: Response) => {
-            console.log(`DURATION ${this.timerService.getChunkUploadDuration()}`)
-            this.chunkService.updateSize(this.timerService.getChunkUploadDuration());
+            this.chunkService.updateSize(this.statService.getChunkUploadDuration());
             this.check();
         }).catch(error=>{
             console.error(`Error sending chunk`, error);
@@ -115,13 +117,10 @@ export class App {
                 case 308:
                     console.log(`New range ${response.range}`);
                     this.chunkService.updateOffset(response.range);
-                    EventService.Dispatch("totalprogresschanged", this.chunkService.getPercent());
-
                     if(this.chunkService.isDone()){
                         this.done();
                         return;
                     }
-
                     this.process();
                     break;
                 case 200 || 201:
@@ -141,9 +140,12 @@ export class App {
 
     //TODO: find a way to reset
     public done(){
+        this.statService.totalStatData.done = true;
         this.ticketService.close().then((response: Response)=>{
+            this.statService.stop();
             console.log(`Delete success:`, response);
         }).catch((error)=>{
+            this.statService.stop();
             console.warn(`Delete failed:`, error);
         });
     }

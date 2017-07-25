@@ -1,9 +1,7 @@
 import {Request} from "../../entities/request";
 import {Header} from "../../entities/header";
 import {Response} from "../../entities/response";
-import {EventService} from "../event/event.service";
-import {TimerService} from "../timer/timer.service";
-import {TimeData} from "../../entities/time_data";
+import {StatService} from "../stat/stat.service";
 /**
  * Created by kfaulhaber on 31/03/2017.
  */
@@ -11,14 +9,14 @@ import {TimeData} from "../../entities/time_data";
     
 export class HttpService {
     constructor(
-        public timerService: TimerService
+        public statService: StatService
     ){}
     
     public send<T>(request: Request, emitProgress: boolean = false): Promise<T>{
         return new Promise((resolve: any, reject: any) => {
             let xhr = new XMLHttpRequest();
 
-            let timeData = this.timerService.create();
+            let statData = this.statService.create();
 
             xhr.open(request.method, request.url, true);
             request.headers.forEach((header: Header)=> xhr.setRequestHeader(header.title, header.value));
@@ -29,8 +27,8 @@ export class HttpService {
 
             xhr.onload = () => {
                 let end: Date = new Date();
-                timeData.end = end;
-                timeData.done = true;
+                statData.end = end;
+                statData.done = true;
 
                 let data = null;
 
@@ -64,12 +62,12 @@ export class HttpService {
             };
 
             if(emitProgress){
-                this.timerService.save(timeData);
+                this.statService.save(statData);
                 xhr.upload.addEventListener("progress", (data: ProgressEvent) => {
                     if(data.lengthComputable){
-                        let percent = Math.floor(data.loaded/data.total * 100);
-                        timeData.percent = percent;
-                        timeData.end = new Date();
+                        statData.loaded = data.loaded;
+                        statData.total = data.total;
+                        statData.end = new Date();
                     }
                 });
             }

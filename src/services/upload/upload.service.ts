@@ -2,7 +2,6 @@ import {Chunk} from "../../entities/chunk";
 import {HttpService} from "../http/http.service";
 import {TicketService} from "../ticket/ticket.service";
 import {MediaService} from "../media/media.service";
-import {TimerService} from "../timer/timer.service";
 /**
  * Created by kfaulhaber on 30/06/2017.
  */

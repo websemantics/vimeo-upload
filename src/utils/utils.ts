@@ -14,4 +14,11 @@ export class TimeUtil {
             date.setTime(time);
             return date.toISOString().substr(11, 8);
     }
+
+    static MilisecondsToString(miliseconds: number): string {
+        let seconds = TimeUtil.TimeToSeconds(miliseconds);
+        let date = new Date(null);
+        date.setSeconds(seconds);
+        return date.toISOString().substr(11, 8);
+    }
 }
