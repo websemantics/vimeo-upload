@@ -2,72 +2,104 @@ import {Request} from "../../entities/request";
 import {Header} from "../../entities/header";
 import {Response} from "../../entities/response";
 import {StatService} from "../stat/stat.service";
+import {StatData} from "../../entities/stat_data";
+import {TimeUtil} from "../../utils/utils";
+import {Status} from "../../enums/status.enum";
 /**
  * Created by kfaulhaber on 31/03/2017.
  */
     
     
 export class HttpService {
-    constructor(
-        public statService: StatService
-    ){}
-    
-    public send<T>(request: Request, emitProgress: boolean = false): Promise<T>{
+
+    public static DefaultResolver(xhr: XMLHttpRequest): Response {
+        let data = null;
+
+        try{
+            data = JSON.parse(xhr.response);
+        }catch(e){
+            data = xhr.response;
+        }
+
+        let response = new Response(
+            xhr.status,
+            xhr.statusText,
+            data
+        );
+
+        if(xhr.status >= 400){
+            response.statusCode = Status.Rejected
+        }
+        
+        return Response;
+    }
+
+    public send<T>(request: Request, statData: StatData = null, resolver: any = null): Promise<T>{
         return new Promise((resolve: any, reject: any) => {
             let xhr = new XMLHttpRequest();
-
-            let statData = this.statService.create();
 
             xhr.open(request.method, request.url, true);
             request.headers.forEach((header: Header)=> xhr.setRequestHeader(header.title, header.value));
 
+            //TODO: Check if needed.
             window.addEventListener("uploadaborted", ()=>{
                 xhr.abort();
             }, false);
 
             xhr.onload = () => {
-                let end: Date = new Date();
-                statData.end = end;
-                statData.done = true;
-
-                let data = null;
-
-                try{
-                    data = JSON.parse(xhr.response);
-                }catch(e){
-                    data = xhr.response;
+                if(statData !== null){
+                    statData.end = new Date();
+                    statData.done = true;
                 }
 
-                let response = new Response(
-                    xhr.status,
-                    xhr.statusText,
-                    data
-                );
+                let response = HttpService.DefaultResolver(xhr);
 
                 switch(true){
-                    case xhr.status >= 200 && xhr.status < 300:
+                    case response.statusCode === Status.Resolved:
                         resolve(response);
                         break;
-                    case xhr.status === 308:
-                        response.range = xhr.getResponseHeader("Range");
-                        resolve(response);
+                    case response.statusCode === Status.Neutral && resolver !== null:
+                        resolver(xhr, response);
+
+                        if(response.statusCode === Status.Resolved){
+                            resolve(response);
+                        }else{
+                            reject(response);
+                        }
+
+                        break;
+                    case response.statusCode === Status.Neutral && resolver === null:
+                        if(xhr.status < 300){
+                            resolve(response);
+                        }else{
+                            reject(response);
+                        }
                         break;
                     default:
                         reject(response);
                 }
             };
 
+            xhr.onabort = () => {
+                reject(new Response(xhr.status, xhr.statusText, xhr.response));
+            };
+
             xhr.onerror = () => {
                 reject(new Response(xhr.status, xhr.statusText, xhr.response || null));
             };
 
-            if(emitProgress){
-                this.statService.save(statData);
+            if(statData != null){
                 xhr.upload.addEventListener("progress", (data: ProgressEvent) => {
                     if(data.lengthComputable){
                         statData.loaded = data.loaded;
                         statData.total = data.total;
                         statData.end = new Date();
+
+                        //TODO: Symplify this.
+                        if(TimeUtil.TimeToSeconds(statData.end.getTime()-statData.start.getTime()) > statData.prefferedDuration*1.5){
+                            statData.done = true;
+                            xhr.abort();
+                        }
                     }
                 });
             }

@@ -6,8 +6,6 @@ import {MediaService} from "../media/media.service";
 
 export class ChunkService {
 
-
-
     constructor(
         public mediaService: MediaService,
         public preferredUploadDuration:number,
@@ -16,9 +14,7 @@ export class ChunkService {
     ){}
     
     public updateSize(uploadDuration: number) {
-
-        let ratio = uploadDuration/this.preferredUploadDuration;
-        this.size = Math.floor(((this.size*this.preferredUploadDuration)/uploadDuration)-);
+        this.size = Math.floor((this.size*this.preferredUploadDuration)/uploadDuration);
     }
     
     public create(): Chunk{

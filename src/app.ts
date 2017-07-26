@@ -23,6 +23,10 @@ export class App {
     public statService: StatService;
     public httpService: HttpService;
 
+    //TODO: find a cleaner way for this
+    public failCount: number = 0;
+    public maxFailAccount: number = 5;
+
     constructor(options: any = {}){
 
         for(let prop in options){
@@ -53,9 +57,7 @@ export class App {
             this.chunkService
         );
 
-        this.httpService = new HttpService(
-            this.statService
-        );
+        this.httpService = new HttpService();
 
         this.ticketService = new TicketService(
             DEFAULT_VALUES.token,
@@ -67,7 +69,8 @@ export class App {
         this.uploadService = new UploadService(
             this.mediaService,
             this.ticketService,
-            this.httpService
+            this.httpService,
+            this.statService
         );
 
         this.validatorService = new ValidatorService(
@@ -100,14 +103,19 @@ export class App {
     }
 
     private process(){
-        console.log("Processing");
         let chunk = this.chunkService.create();
         console.log(chunk.content, chunk.contentRange);
         this.uploadService.send(chunk).then((response: Response) => {
             this.chunkService.updateSize(this.statService.getChunkUploadDuration());
             this.check();
         }).catch(error=>{
-            console.error(`Error sending chunk`, error);
+            if(this.failCount <= this.maxFailAccount){
+                this.failCount++;
+                console.error(`Error sending chunk: ${this.failCount}`);
+                //TODO: Probably should modify
+                this.chunkService.updateSize(this.statService.getChunkUploadDuration());
+                this.check();
+            }
         });
     }
 
@@ -115,8 +123,7 @@ export class App {
         this.uploadService.getRange().then((response: Response) => {
             switch(response.status){
                 case 308:
-                    console.log(`New range ${response.range}`);
-                    this.chunkService.updateOffset(response.range);
+                    this.chunkService.updateOffset(response.responseHeaderData);
                     if(this.chunkService.isDone()){
                         this.done();
                         return;

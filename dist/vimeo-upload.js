@@ -64,7 +64,7 @@ var VimeoUpload =
 /******/ 	__webpack_require__.p = "";
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 11);
+/******/ 	return __webpack_require__(__webpack_require__.s = 12);
 /******/ })
 /************************************************************************/
 /******/ ([
@@ -74,31 +74,32 @@ var VimeoUpload =
 "use strict";
 
 exports.__esModule = true;
-var request_1 = __webpack_require__(7);
-var header_1 = __webpack_require__(5);
-var response_1 = __webpack_require__(8);
+var request_1 = __webpack_require__(8);
+var header_1 = __webpack_require__(6);
+var response_1 = __webpack_require__(9);
+var utils_1 = __webpack_require__(3);
 /**
  * Created by kfaulhaber on 31/03/2017.
  */
 var HttpService = (function () {
-    function HttpService(statService) {
-        this.statService = statService;
+    function HttpService() {
     }
-    HttpService.prototype.send = function (request, emitProgress) {
-        var _this = this;
-        if (emitProgress === void 0) { emitProgress = false; }
+    HttpService.prototype.send = function (request, statData) {
+        if (statData === void 0) { statData = null; }
         return new Promise(function (resolve, reject) {
             var xhr = new XMLHttpRequest();
-            var statData = _this.statService.create();
             xhr.open(request.method, request.url, true);
             request.headers.forEach(function (header) { return xhr.setRequestHeader(header.title, header.value); });
+            //TODO: Check if needed.
             window.addEventListener("uploadaborted", function () {
                 xhr.abort();
             }, false);
             xhr.onload = function () {
-                var end = new Date();
-                statData.end = end;
-                statData.done = true;
+                if (statData !== null) {
+                    var end = new Date();
+                    statData.end = end;
+                    statData.done = true;
+                }
                 var data = null;
                 try {
                     data = JSON.parse(xhr.response);
@@ -119,16 +120,23 @@ var HttpService = (function () {
                         reject(response);
                 }
             };
+            xhr.onabort = function () {
+                reject(new response_1.Response(xhr.status, xhr.statusText, xhr.response));
+            };
             xhr.onerror = function () {
                 reject(new response_1.Response(xhr.status, xhr.statusText, xhr.response || null));
             };
-            if (emitProgress) {
-                _this.statService.save(statData);
+            if (statData != null) {
                 xhr.upload.addEventListener("progress", function (data) {
                     if (data.lengthComputable) {
                         statData.loaded = data.loaded;
                         statData.total = data.total;
                         statData.end = new Date();
+                        //TODO: Symplify this.
+                        if (utils_1.TimeUtil.TimeToSeconds(statData.end.getTime() - statData.start.getTime()) > statData.prefferedDuration * 1.5) {
+                            statData.done = true;
+                            xhr.abort();
+                        }
                     }
                 });
             }
@@ -229,22 +237,57 @@ exports.EventService = EventService;
 
 "use strict";
 
+/**
+ * Created by kfaulhaber on 17/07/2017.
+ */
 exports.__esModule = true;
-var ticket_service_1 = __webpack_require__(16);
-var chunk_service_1 = __webpack_require__(13);
-var upload_service_1 = __webpack_require__(17);
+var TimeUtil = (function () {
+    function TimeUtil() {
+    }
+    TimeUtil.TimeToSeconds = function (time) {
+        return time / 1000;
+    };
+    TimeUtil.TimeToString = function (time) {
+        var date = new Date(null);
+        date.setTime(time);
+        return date.toISOString().substr(11, 8);
+    };
+    TimeUtil.MilisecondsToString = function (miliseconds) {
+        var seconds = TimeUtil.TimeToSeconds(miliseconds);
+        var date = new Date(null);
+        date.setSeconds(seconds);
+        return date.toISOString().substr(11, 8);
+    };
+    return TimeUtil;
+}());
+exports.TimeUtil = TimeUtil;
+
+
+/***/ }),
+/* 4 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+exports.__esModule = true;
+var ticket_service_1 = __webpack_require__(17);
+var chunk_service_1 = __webpack_require__(14);
+var upload_service_1 = __webpack_require__(18);
 var config_1 = __webpack_require__(1);
 var event_service_1 = __webpack_require__(2);
-var validator_service_1 = __webpack_require__(18);
-var media_service_1 = __webpack_require__(14);
+var validator_service_1 = __webpack_require__(19);
+var media_service_1 = __webpack_require__(15);
 var http_service_1 = __webpack_require__(0);
-var stat_service_1 = __webpack_require__(15);
+var stat_service_1 = __webpack_require__(16);
 /**
  * Created by Grimbode on 12/07/2017.
  */
 var App = (function () {
     function App(options) {
         if (options === void 0) { options = {}; }
+        //TODO: find a cleaner way for this
+        this.failCount = 0;
+        this.maxFailAccount = 5;
         for (var prop in options) {
             if (!options.hasOwnProperty(prop)) {
                 continue;
@@ -260,9 +303,9 @@ var App = (function () {
         this.mediaService = new media_service_1.MediaService(config_1.DEFAULT_VALUES);
         this.chunkService = new chunk_service_1.ChunkService(this.mediaService, config_1.DEFAULT_VALUES.preferredUploadDuration, config_1.DEFAULT_VALUES.chunkSize);
         this.statService = new stat_service_1.StatService(config_1.DEFAULT_VALUES.timeInterval, this.chunkService);
-        this.httpService = new http_service_1.HttpService(this.statService);
+        this.httpService = new http_service_1.HttpService();
         this.ticketService = new ticket_service_1.TicketService(config_1.DEFAULT_VALUES.token, this.httpService);
-        this.uploadService = new upload_service_1.UploadService(this.mediaService, this.ticketService, this.httpService);
+        this.uploadService = new upload_service_1.UploadService(this.mediaService, this.ticketService, this.httpService, this.statService);
         this.validatorService = new validator_service_1.ValidatorService(config_1.DEFAULT_VALUES.supportedFiles);
     }
     App.prototype.start = function (options) {
@@ -294,7 +337,13 @@ var App = (function () {
             _this.chunkService.updateSize(_this.statService.getChunkUploadDuration());
             _this.check();
         })["catch"](function (error) {
-            console.error("Error sending chunk", error);
+            if (_this.failCount <= _this.maxFailAccount) {
+                _this.failCount++;
+                console.error("Error sending chunk: " + _this.failCount);
+                //TODO: Probably should modify
+                _this.chunkService.updateSize(_this.statService.getChunkUploadDuration());
+                _this.check();
+            }
         });
     };
     App.prototype.check = function () {
@@ -364,7 +413,7 @@ exports.App = App;
 
 
 /***/ }),
-/* 4 */
+/* 5 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -384,7 +433,7 @@ exports.Chunk = Chunk;
 
 
 /***/ }),
-/* 5 */
+/* 6 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -404,7 +453,7 @@ exports.Header = Header;
 
 
 /***/ }),
-/* 6 */
+/* 7 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -431,7 +480,7 @@ exports.Media = Media;
 
 
 /***/ }),
-/* 7 */
+/* 8 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -455,7 +504,7 @@ exports.Request = Request;
 
 
 /***/ }),
-/* 8 */
+/* 9 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -479,7 +528,7 @@ exports.Response = Response;
 
 
 /***/ }),
-/* 9 */
+/* 10 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -489,12 +538,13 @@ exports.Response = Response;
  */
 exports.__esModule = true;
 var StatData = (function () {
-    function StatData(start, end, loaded, total, done) {
+    function StatData(start, end, prefferedDuration, loaded, total, done) {
         if (loaded === void 0) { loaded = 0; }
         if (total === void 0) { total = 0; }
         if (done === void 0) { done = false; }
         this.start = start;
         this.end = end;
+        this.prefferedDuration = prefferedDuration;
         this.loaded = loaded;
         this.total = total;
         this.done = done;
@@ -505,7 +555,7 @@ exports.StatData = StatData;
 
 
 /***/ }),
-/* 10 */
+/* 11 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -528,13 +578,13 @@ exports.Ticket = Ticket;
 
 
 /***/ }),
-/* 11 */
+/* 12 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 exports.__esModule = true;
-var app_1 = __webpack_require__(3);
+var app_1 = __webpack_require__(4);
 var module;
 /**
  * Created by kfaulhaber on 30/06/2017.
@@ -543,7 +593,7 @@ module.exports = app_1.App;
 
 
 /***/ }),
-/* 12 */
+/* 13 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -562,13 +612,13 @@ exports.VIMEO_ROUTES = {
 
 
 /***/ }),
-/* 13 */
+/* 14 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 exports.__esModule = true;
-var chunk_1 = __webpack_require__(4);
+var chunk_1 = __webpack_require__(5);
 /**
  * Created by kfaulhaber on 30/06/2017.
  */
@@ -581,16 +631,7 @@ var ChunkService = (function () {
         this.offset = offset;
     }
     ChunkService.prototype.updateSize = function (uploadDuration) {
-        var adjust = 1;
-        if (uploadDuration / this.preferredUploadDuration < 0.5) {
-            console.log("Adjusting");
-            adjust = 0.5;
-        }
-        else if (uploadDuration / this.preferredUploadDuration > 2) {
-            adjust = 2;
-        }
-        console.log("Upload duration", uploadDuration);
-        this.size = Math.floor((this.size * this.preferredUploadDuration) / uploadDuration * adjust);
+        this.size = Math.floor((this.size * this.preferredUploadDuration) / uploadDuration);
     };
     ChunkService.prototype.create = function () {
         var end = Math.min(this.offset + this.size, this.mediaService.media.file.size);
@@ -613,13 +654,13 @@ exports.ChunkService = ChunkService;
 
 
 /***/ }),
-/* 14 */
+/* 15 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 exports.__esModule = true;
-var media_1 = __webpack_require__(6);
+var media_1 = __webpack_require__(7);
 /**
  * Created by kfaulhaber on 21/07/2017.
  */
@@ -645,15 +686,15 @@ exports.MediaService = MediaService;
 
 
 /***/ }),
-/* 15 */
+/* 16 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 exports.__esModule = true;
 var event_service_1 = __webpack_require__(2);
-var utils_1 = __webpack_require__(19);
-var stat_data_1 = __webpack_require__(9);
+var utils_1 = __webpack_require__(3);
+var stat_data_1 = __webpack_require__(10);
 /**
  * Created by Grimbode on 14/07/2017.
  */
@@ -672,7 +713,7 @@ var StatService = (function () {
         if (isTotal === void 0) { isTotal = false; }
         var date = new Date();
         var size = (isTotal) ? this.chunkService.mediaService.media.file.size : this.chunkService.size;
-        var statData = new stat_data_1.StatData(date, date, 0, size);
+        var statData = new stat_data_1.StatData(date, date, this.chunkService.preferredUploadDuration, 0, size);
         return statData;
     };
     StatService.prototype.save = function (timeData) {
@@ -680,14 +721,14 @@ var StatService = (function () {
     };
     StatService.prototype.estimateTimeLeft = function (statData) {
         var nTime = Math.floor(new Date().getTime() - statData.start.getTime());
-        var ratio = this.calculateRatio(statData);
+        var ratio = this.calculateRatio(statData.loaded, statData.total);
         return (ratio > 0) ? Math.floor(nTime * ratio) : nTime;
     };
-    StatService.prototype.calculateRatio = function (statData) {
-        return statData.loaded / statData.total;
+    StatService.prototype.calculateRatio = function (loaded, total) {
+        return loaded / total;
     };
-    StatService.prototype.calculatePercent = function (statData) {
-        return Math.floor(this.calculateRatio(statData) * 100);
+    StatService.prototype.calculatePercent = function (loaded, total) {
+        return Math.floor(this.calculateRatio(loaded, total) * 100);
     };
     StatService.prototype.calculateUploadSpeed = function (seconds) {
         return (seconds > 0) ? Math.floor(this.chunkStatData.total / seconds) : 0;
@@ -701,17 +742,16 @@ var StatService = (function () {
             this.stop();
         }
         this.si = setInterval(function () {
-            var chunkPercent = 100;
+            var chunkPercent = _this.calculatePercent(_this.chunkStatData.loaded, _this.chunkStatData.total);
             if (_this.chunkStatData.done) {
                 _this.updateTotal();
                 _this.chunkStatData.total = _this.chunkStatData.loaded = 0;
-            }
-            else {
-                chunkPercent = _this.calculatePercent(_this.chunkStatData);
+                chunkPercent = 100;
             }
             _this.totalStatData.end = _this.chunkStatData.end;
             _this.previousTotalPercent = Math.max(_this.totalStatData.loaded + _this.chunkStatData.loaded, _this.previousTotalPercent);
-            var totalPercent = _this.calculatePercent(new stat_data_1.StatData(_this.totalStatData.start, _this.totalStatData.end, _this.previousTotalPercent, _this.totalStatData.total));
+            var totalPercent = _this.calculatePercent(_this.previousTotalPercent, _this.totalStatData.total);
+            console.log("total: ", _this.totalStatData.total, _this.previousTotalPercent, totalPercent, _this.previousTotalPercent / _this.totalStatData.total);
             var chunkTimeLeft = (!_this.chunkStatData || _this.chunkStatData.done) ? 0 : _this.estimateTimeLeft(_this.chunkStatData);
             var chunkSecondsLeft = utils_1.TimeUtil.TimeToSeconds(chunkTimeLeft);
             var timeLeft = _this.estimateTimeLeft(_this.totalStatData);
@@ -739,21 +779,24 @@ var StatService = (function () {
     StatService.prototype.getChunkUploadDuration = function () {
         return utils_1.TimeUtil.TimeToSeconds(this.chunkStatData.end.getTime() - this.chunkStatData.start.getTime());
     };
+    StatService.prototype.chunkIsOverPrefferedUploadTime = function () {
+        return this.getChunkUploadDuration() >= this.chunkService.preferredUploadDuration * 1.5;
+    };
     return StatService;
 }());
 exports.StatService = StatService;
 
 
 /***/ }),
-/* 16 */
+/* 17 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 exports.__esModule = true;
 var http_service_1 = __webpack_require__(0);
-var ticket_1 = __webpack_require__(10);
-var routes_1 = __webpack_require__(12);
+var ticket_1 = __webpack_require__(11);
+var routes_1 = __webpack_require__(13);
 /**
  * Created by kfaulhaber on 30/06/2017.
  */
@@ -784,7 +827,7 @@ exports.TicketService = TicketService;
 
 
 /***/ }),
-/* 17 */
+/* 18 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -795,18 +838,21 @@ var http_service_1 = __webpack_require__(0);
  * Created by kfaulhaber on 30/06/2017.
  */
 var UploadService = (function () {
-    function UploadService(mediaService, ticketService, httpService) {
+    function UploadService(mediaService, ticketService, httpService, statService) {
         this.mediaService = mediaService;
         this.ticketService = ticketService;
         this.httpService = httpService;
+        this.statService = statService;
     }
     UploadService.prototype.send = function (chunk) {
         console.log(chunk.content, chunk.contentRange);
+        var statData = this.statService.create();
+        this.statService.save(statData);
         var request = http_service_1.HttpService.CreateRequest("PUT", this.ticketService.ticket.uploadLinkSecure, chunk.content, {
             'Content-Type': this.mediaService.media.file.type,
             'Content-Range': chunk.contentRange
         });
-        return this.httpService.send(request, true);
+        return this.httpService.send(request, statData);
     };
     UploadService.prototype.getRange = function () {
         var request = http_service_1.HttpService.CreateRequest("PUT", this.ticketService.ticket.uploadLinkSecure, null, {
@@ -821,7 +867,7 @@ exports.UploadService = UploadService;
 
 
 /***/ }),
-/* 18 */
+/* 19 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -850,38 +896,6 @@ var ValidatorService = (function () {
     return ValidatorService;
 }());
 exports.ValidatorService = ValidatorService;
-
-
-/***/ }),
-/* 19 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-/**
- * Created by kfaulhaber on 17/07/2017.
- */
-exports.__esModule = true;
-var TimeUtil = (function () {
-    function TimeUtil() {
-    }
-    TimeUtil.TimeToSeconds = function (time) {
-        return time / 1000;
-    };
-    TimeUtil.TimeToString = function (time) {
-        var date = new Date(null);
-        date.setTime(time);
-        return date.toISOString().substr(11, 8);
-    };
-    TimeUtil.MilisecondsToString = function (miliseconds) {
-        var seconds = TimeUtil.TimeToSeconds(miliseconds);
-        var date = new Date(null);
-        date.setSeconds(seconds);
-        return date.toISOString().substr(11, 8);
-    };
-    return TimeUtil;
-}());
-exports.TimeUtil = TimeUtil;
 
 
 /***/ })

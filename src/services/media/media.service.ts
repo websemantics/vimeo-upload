@@ -26,4 +26,8 @@ export class MediaService {
         }
 
     }
+    
+    public updateVideoData(video_id: number){
+        
+    }
 }

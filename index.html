@@ -213,7 +213,6 @@
         var vimeoUpload = new VimeoUpload();
 
         vimeoUpload.on("chunkprogresschanged", function(event){
-            console.log("Chunk progress called " + event.detail);
             var progress = event.detail;
             chunkProgress.setAttribute('style', 'width:' + progress + '%');
             chunkProgress.innerHTML = '&nbsp;' + progress + '%'

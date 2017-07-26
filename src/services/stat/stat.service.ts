@@ -25,7 +25,7 @@ export class StatService {
     public create(isTotal: boolean = false): StatData {
         let date = new Date();
         let size = (isTotal) ? this.chunkService.mediaService.media.file.size : this.chunkService.size;
-        let statData = new StatData(date, date, 0, size);
+        let statData = new StatData(date, date, this.chunkService.preferredUploadDuration, 0, size);
         return statData;
     }
 
@@ -35,16 +35,16 @@ export class StatService {
 
     public estimateTimeLeft(statData: StatData): number {
         let nTime = Math.floor(new Date().getTime() - statData.start.getTime());
-        let ratio = this.calculateRatio(statData);
+        let ratio = this.calculateRatio(statData.loaded, statData.total);
         return (ratio > 0) ? Math.floor(nTime*ratio): nTime;
     }
 
-    public calculateRatio(statData: StatData): number{
-        return statData.loaded/statData.total;
+    public calculateRatio(loaded: number, total: number): number{
+        return loaded/total;
     }
 
-    public calculatePercent(statData: StatData): number{
-        return Math.floor(this.calculateRatio(statData)*100);
+    public calculatePercent(loaded: number, total: number): number{
+        return Math.floor(this.calculateRatio(loaded, total)*100);
     }
 
     public calculateUploadSpeed(seconds: number): number {
@@ -62,24 +62,22 @@ export class StatService {
 
         this.si = setInterval(()=>{
 
-            let chunkPercent = 100;
+
+            let chunkPercent = this.calculatePercent(this.chunkStatData.loaded, this.chunkStatData.total);
             if(this.chunkStatData.done){
                 this.updateTotal();
                 this.chunkStatData.total = this.chunkStatData.loaded = 0;
-            } else {
-                chunkPercent = this.calculatePercent(this.chunkStatData);
+                chunkPercent = 100;
             }
 
             this.totalStatData.end = this.chunkStatData.end;
             this.previousTotalPercent = Math.max(this.totalStatData.loaded + this.chunkStatData.loaded, this.previousTotalPercent);
 
 
-            let totalPercent = this.calculatePercent(new StatData(
-                this.totalStatData.start,
-                this.totalStatData.end,
+            let totalPercent = this.calculatePercent(
                 this.previousTotalPercent,
                 this.totalStatData.total
-            ));
+            );
 
             let chunkTimeLeft = (!this.chunkStatData || this.chunkStatData.done) ? 0 : this.estimateTimeLeft(this.chunkStatData);
             let chunkSecondsLeft = TimeUtil.TimeToSeconds(chunkTimeLeft);
@@ -118,5 +116,9 @@ export class StatService {
 
     public getChunkUploadDuration(): number{
         return TimeUtil.TimeToSeconds(this.chunkStatData.end.getTime() - this.chunkStatData.start.getTime());
+    }
+
+    public chunkIsOverPrefferedUploadTime(): boolean{
+        return this.getChunkUploadDuration() >= this.chunkService.preferredUploadDuration*1.5;
     }
 }

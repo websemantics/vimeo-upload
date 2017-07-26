@@ -2,6 +2,7 @@ import {HttpService} from "../http/http.service";
 import {Ticket} from "../../entities/ticket";
 import {Response} from "../../entities/response";
 import {VIMEO_ROUTES} from "../../routes/routes";
+import {Status} from "../../enums/status.enum";
 /**
  * Created by kfaulhaber on 30/06/2017.
  */
@@ -38,7 +39,14 @@ export class TicketService {
         let request = HttpService.CreateRequest("DELETE", VIMEO_ROUTES.DEFAULT(this.ticket.completeUri), null, {
             Authorization: `Bearer ${this.token}`
         });
-        return this.httpService.send(request)
+        return this.httpService.send(request, null, TicketService.CloseResolver)
+    }
+
+    public static CloseResolver(xhr: XMLHttpRequest, response: Response){
+        if(xhr.status < 400){
+            response.statusCode = Status.Resolved;
+            response.responseHeaderData = xhr.getResponseHeader("Location");
+        }
     }
 }
 
