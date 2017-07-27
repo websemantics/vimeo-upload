@@ -11,4 +11,11 @@ export class Media {
         public file: File               = null,
         public upgrade_to_1080: boolean = false
     ){}
+
+    public toJSON(): Object {
+        return {
+            name:           this.name,
+            description:    this.description
+        }
+    }
 }

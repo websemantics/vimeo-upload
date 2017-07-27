@@ -11,7 +11,9 @@ export const DEFAULT_VALUES = {
   description:              "",
   file:                     null,
   upgrade_to_1080:          false,
-  timeInterval:             150
+  timeInterval:             150,
+  maxAcceptedFails:         20,
+  maxAcceptedUploadDuration: 60
 };
 
 export const DEFAULT_EVENTS = {

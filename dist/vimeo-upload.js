@@ -34,9 +34,6 @@ var VimeoUpload =
 /******/ 	// expose the module cache
 /******/ 	__webpack_require__.c = installedModules;
 /******/
-/******/ 	// identity function for calling harmony imports with the correct context
-/******/ 	__webpack_require__.i = function(value) { return value; };
-/******/
 /******/ 	// define getter function for harmony exports
 /******/ 	__webpack_require__.d = function(exports, name, getter) {
 /******/ 		if(!__webpack_require__.o(exports, name)) {
@@ -64,7 +61,7 @@ var VimeoUpload =
 /******/ 	__webpack_require__.p = "";
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 12);
+/******/ 	return __webpack_require__(__webpack_require__.s = 6);
 /******/ })
 /************************************************************************/
 /******/ ([
@@ -74,18 +71,35 @@ var VimeoUpload =
 "use strict";
 
 exports.__esModule = true;
-var request_1 = __webpack_require__(8);
-var header_1 = __webpack_require__(6);
-var response_1 = __webpack_require__(9);
-var utils_1 = __webpack_require__(3);
+var request_1 = __webpack_require__(9);
+var header_1 = __webpack_require__(10);
+var response_1 = __webpack_require__(11);
+var utils_1 = __webpack_require__(2);
+var status_enum_1 = __webpack_require__(1);
 /**
  * Created by kfaulhaber on 31/03/2017.
  */
 var HttpService = (function () {
-    function HttpService() {
+    function HttpService(maxAcceptedUploadDuration) {
+        this.maxAcceptedUploadDuration = maxAcceptedUploadDuration;
     }
-    HttpService.prototype.send = function (request, statData) {
+    HttpService.DefaultResolver = function (xhr) {
+        var data = null;
+        try {
+            data = JSON.parse(xhr.response);
+        }
+        catch (e) {
+            data = xhr.response;
+        }
+        var response = new response_1.Response(xhr.status, xhr.statusText, data);
+        if (xhr.status >= 400) {
+            response.statusCode = status_enum_1.Status.Rejected;
+        }
+        return response;
+    };
+    HttpService.prototype.send = function (request, statData, resolver) {
         if (statData === void 0) { statData = null; }
+        if (resolver === void 0) { resolver = null; }
         return new Promise(function (resolve, reject) {
             var xhr = new XMLHttpRequest();
             xhr.open(request.method, request.url, true);
@@ -96,25 +110,30 @@ var HttpService = (function () {
             }, false);
             xhr.onload = function () {
                 if (statData !== null) {
-                    var end = new Date();
-                    statData.end = end;
+                    statData.end = new Date();
                     statData.done = true;
                 }
-                var data = null;
-                try {
-                    data = JSON.parse(xhr.response);
-                }
-                catch (e) {
-                    data = xhr.response;
-                }
-                var response = new response_1.Response(xhr.status, xhr.statusText, data);
+                var response = HttpService.DefaultResolver(xhr);
                 switch (true) {
-                    case xhr.status >= 200 && xhr.status < 300:
+                    case response.statusCode === status_enum_1.Status.Resolved:
                         resolve(response);
                         break;
-                    case xhr.status === 308:
-                        response.range = xhr.getResponseHeader("Range");
-                        resolve(response);
+                    case response.statusCode === status_enum_1.Status.Neutral && resolver !== null:
+                        resolver(xhr, response);
+                        if (response.statusCode === status_enum_1.Status.Resolved) {
+                            resolve(response);
+                        }
+                        else {
+                            reject(response);
+                        }
+                        break;
+                    case response.statusCode === status_enum_1.Status.Neutral && resolver === null:
+                        if (xhr.status < 300) {
+                            resolve(response);
+                        }
+                        else {
+                            reject(response);
+                        }
                         break;
                     default:
                         reject(response);
@@ -133,7 +152,9 @@ var HttpService = (function () {
                         statData.total = data.total;
                         statData.end = new Date();
                         //TODO: Symplify this.
-                        if (utils_1.TimeUtil.TimeToSeconds(statData.end.getTime() - statData.start.getTime()) > statData.prefferedDuration * 1.5) {
+                        if (utils_1.TimeUtil.TimeToSeconds(statData.end.getTime() - statData.start.getTime()) > statData.prefferedDuration * 2) {
+                            statData.loaded = 0;
+                            statData.total = 0;
                             statData.done = true;
                             xhr.abort();
                         }
@@ -171,68 +192,19 @@ exports.HttpService = HttpService;
 "use strict";
 
 /**
- * Created by kfaulhaber on 13/07/2017.
+ * Created by kfaulhaber on 26/07/2017.
  */
 exports.__esModule = true;
-exports.DEFAULT_VALUES = {
-    preferredUploadDuration: 20,
-    chunkSize: 1024 * 1024,
-    token: "TOKEN_STRING_HERE",
-    supportedFiles: ["mov", "mpeg4", "mp4", "avi", "wmv", "mpegps", "flv", "3gpp", "webm"],
-    name: "",
-    description: "",
-    file: null,
-    upgrade_to_1080: false,
-    timeInterval: 150
-};
-exports.DEFAULT_EVENTS = {
-    chunkprogresschanged: function (event) { return console.log("Default: Chunk Progress Update: " + event.detail + "/100"); },
-    totalprogresschanged: function (event) { return console.log("Default: Total Progress Update: " + event.detail + "/100"); },
-    estimatedtimechanged: function (event) { return console.log("Default: Estimated Time Update: " + event.detail); },
-    estimatedchunktimechanged: function (event) { return console.log("Default: Estimated Chunk Time Update: " + event.detail); },
-    estimateduploadspeedchanged: function (event) { return console.log("Default: Estimated Upload Speed Changed: " + event.detail + " mb/s"); },
-    uploadaborted: function (event) { return console.log("Default: Upload aborted detected."); }
-};
+var Status;
+(function (Status) {
+    Status[Status["Neutral"] = 0] = "Neutral";
+    Status[Status["Rejected"] = 1] = "Rejected";
+    Status[Status["Resolved"] = 2] = "Resolved";
+})(Status = exports.Status || (exports.Status = {}));
 
 
 /***/ }),
 /* 2 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-exports.__esModule = true;
-var config_1 = __webpack_require__(1);
-/**
- * Created by kfaulhaber on 17/07/2017.
- */
-var EventService = (function () {
-    function EventService() {
-    }
-    EventService.Add = function (eventName, callback) {
-        window.addEventListener(eventName, callback, false);
-    };
-    EventService.Remove = function (eventName, callback) {
-        window.removeEventListener(eventName, callback, false);
-    };
-    EventService.Dispatch = function (eventName, data) {
-        if (data === void 0) { data = null; }
-        var customEvent = new CustomEvent(eventName, { detail: data });
-        window.dispatchEvent(customEvent);
-    };
-    EventService.Exists = function (eventName) {
-        return config_1.DEFAULT_EVENTS.hasOwnProperty(eventName);
-    };
-    EventService.GetDefault = function (eventName) {
-        return config_1.DEFAULT_EVENTS[eventName];
-    };
-    return EventService;
-}());
-exports.EventService = EventService;
-
-
-/***/ }),
-/* 3 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -264,30 +236,136 @@ exports.TimeUtil = TimeUtil;
 
 
 /***/ }),
+/* 3 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+/**
+ * Created by Grimbode on 30/06/2017.
+ */
+exports.__esModule = true;
+exports.VIMEO_ROUTES = {
+    DEFAULT: function (uri) {
+        if (uri === void 0) { uri = ""; }
+        return "https://api.vimeo.com" + uri;
+    },
+    TICKET: function () { return exports.VIMEO_ROUTES.DEFAULT() + "/me/videos"; },
+    VIDEOS: function (videoId) { return "" + exports.VIMEO_ROUTES.DEFAULT("/videos/" + videoId); }
+};
+
+
+/***/ }),
 /* 4 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
+/**
+ * Created by kfaulhaber on 13/07/2017.
+ */
 exports.__esModule = true;
-var ticket_service_1 = __webpack_require__(17);
-var chunk_service_1 = __webpack_require__(14);
-var upload_service_1 = __webpack_require__(18);
-var config_1 = __webpack_require__(1);
-var event_service_1 = __webpack_require__(2);
-var validator_service_1 = __webpack_require__(19);
-var media_service_1 = __webpack_require__(15);
+exports.DEFAULT_VALUES = {
+    preferredUploadDuration: 20,
+    chunkSize: 1024 * 1024,
+    token: "TOKEN_STRING_HERE",
+    supportedFiles: ["mov", "mpeg4", "mp4", "avi", "wmv", "mpegps", "flv", "3gpp", "webm"],
+    name: "",
+    description: "",
+    file: null,
+    upgrade_to_1080: false,
+    timeInterval: 150,
+    maxAcceptedFails: 20,
+    maxAcceptedUploadDuration: 60
+};
+exports.DEFAULT_EVENTS = {
+    chunkprogresschanged: function (event) { return console.log("Default: Chunk Progress Update: " + event.detail + "/100"); },
+    totalprogresschanged: function (event) { return console.log("Default: Total Progress Update: " + event.detail + "/100"); },
+    estimatedtimechanged: function (event) { return console.log("Default: Estimated Time Update: " + event.detail); },
+    estimatedchunktimechanged: function (event) { return console.log("Default: Estimated Chunk Time Update: " + event.detail); },
+    estimateduploadspeedchanged: function (event) { return console.log("Default: Estimated Upload Speed Changed: " + event.detail + " mb/s"); },
+    uploadaborted: function (event) { return console.log("Default: Upload aborted detected."); }
+};
+
+
+/***/ }),
+/* 5 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+exports.__esModule = true;
+var config_1 = __webpack_require__(4);
+/**
+ * Created by kfaulhaber on 17/07/2017.
+ */
+var EventService = (function () {
+    function EventService() {
+    }
+    EventService.Add = function (eventName, callback) {
+        window.addEventListener(eventName, callback, false);
+    };
+    EventService.Remove = function (eventName, callback) {
+        window.removeEventListener(eventName, callback, false);
+    };
+    EventService.Dispatch = function (eventName, data) {
+        if (data === void 0) { data = null; }
+        var customEvent = new CustomEvent(eventName, { detail: data });
+        window.dispatchEvent(customEvent);
+    };
+    EventService.Exists = function (eventName) {
+        return config_1.DEFAULT_EVENTS.hasOwnProperty(eventName);
+    };
+    EventService.GetDefault = function (eventName) {
+        return config_1.DEFAULT_EVENTS[eventName];
+    };
+    return EventService;
+}());
+exports.EventService = EventService;
+
+
+/***/ }),
+/* 6 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+exports.__esModule = true;
+var app_1 = __webpack_require__(7);
+var module;
+/**
+ * Created by kfaulhaber on 30/06/2017.
+ */
+module.exports = app_1.App;
+
+
+/***/ }),
+/* 7 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+exports.__esModule = true;
+var ticket_service_1 = __webpack_require__(8);
+var chunk_service_1 = __webpack_require__(13);
+var upload_service_1 = __webpack_require__(15);
+var config_1 = __webpack_require__(4);
+var event_service_1 = __webpack_require__(5);
+var validator_service_1 = __webpack_require__(16);
+var media_service_1 = __webpack_require__(17);
 var http_service_1 = __webpack_require__(0);
-var stat_service_1 = __webpack_require__(16);
+var stat_service_1 = __webpack_require__(19);
 /**
  * Created by Grimbode on 12/07/2017.
  */
 var App = (function () {
-    function App(options) {
-        if (options === void 0) { options = {}; }
+    function App() {
         //TODO: find a cleaner way for this
         this.failCount = 0;
-        this.maxFailAccount = 5;
+    }
+    //TODO: See if this should go in an init function.
+    App.prototype.init = function (options) {
+        if (options === void 0) { options = {}; }
         for (var prop in options) {
             if (!options.hasOwnProperty(prop)) {
                 continue;
@@ -300,21 +378,19 @@ var App = (function () {
                     console.warn("Unrecognized property: " + prop);
             }
         }
-        this.mediaService = new media_service_1.MediaService(config_1.DEFAULT_VALUES);
+        this.maxAcceptedFails = config_1.DEFAULT_VALUES.maxAcceptedFails;
+        this.httpService = new http_service_1.HttpService(config_1.DEFAULT_VALUES.maxAcceptedUploadDuration);
+        this.mediaService = new media_service_1.MediaService(this.httpService, config_1.DEFAULT_VALUES);
         this.chunkService = new chunk_service_1.ChunkService(this.mediaService, config_1.DEFAULT_VALUES.preferredUploadDuration, config_1.DEFAULT_VALUES.chunkSize);
         this.statService = new stat_service_1.StatService(config_1.DEFAULT_VALUES.timeInterval, this.chunkService);
-        this.httpService = new http_service_1.HttpService();
-        this.ticketService = new ticket_service_1.TicketService(config_1.DEFAULT_VALUES.token, this.httpService);
+        this.ticketService = new ticket_service_1.TicketService(config_1.DEFAULT_VALUES.token, this.httpService, config_1.DEFAULT_VALUES.upgrade_to_1080);
         this.uploadService = new upload_service_1.UploadService(this.mediaService, this.ticketService, this.httpService, this.statService);
         this.validatorService = new validator_service_1.ValidatorService(config_1.DEFAULT_VALUES.supportedFiles);
-    }
+    };
     App.prototype.start = function (options) {
         var _this = this;
         if (options === void 0) { options = {}; }
-        this.mediaService.setData(options);
-        if (options.token) {
-            this.ticketService.token = config_1.DEFAULT_VALUES.token = options.token;
-        }
+        this.init(options);
         //TODO: Add error if not supported.
         if (!this.validatorService.isSupported(this.mediaService.media.file))
             return;
@@ -330,14 +406,13 @@ var App = (function () {
     };
     App.prototype.process = function () {
         var _this = this;
-        console.log("Processing");
         var chunk = this.chunkService.create();
         console.log(chunk.content, chunk.contentRange);
         this.uploadService.send(chunk).then(function (response) {
             _this.chunkService.updateSize(_this.statService.getChunkUploadDuration());
             _this.check();
         })["catch"](function (error) {
-            if (_this.failCount <= _this.maxFailAccount) {
+            if (_this.failCount <= _this.maxAcceptedFails) {
                 _this.failCount++;
                 console.error("Error sending chunk: " + _this.failCount);
                 //TODO: Probably should modify
@@ -351,8 +426,7 @@ var App = (function () {
         this.uploadService.getRange().then(function (response) {
             switch (response.status) {
                 case 308:
-                    console.log("New range " + response.range);
-                    _this.chunkService.updateOffset(response.range);
+                    _this.chunkService.updateOffset(response.responseHeaderData);
                     if (_this.chunkService.isDone()) {
                         _this.done();
                         return;
@@ -413,74 +487,58 @@ exports.App = App;
 
 
 /***/ }),
-/* 5 */
+/* 8 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
-/**
- * Created by kfaulhaber on 13/07/2017.
- */
 exports.__esModule = true;
-var Chunk = (function () {
-    function Chunk(content, contentRange) {
-        this.content = content;
-        this.contentRange = contentRange;
-    }
-    return Chunk;
-}());
-exports.Chunk = Chunk;
-
-
-/***/ }),
-/* 6 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
+var http_service_1 = __webpack_require__(0);
+var ticket_1 = __webpack_require__(12);
+var routes_1 = __webpack_require__(3);
+var status_enum_1 = __webpack_require__(1);
 /**
- * Created by kfaulhaber on 24/07/2017.
+ * Created by kfaulhaber on 30/06/2017.
  */
-exports.__esModule = true;
-var Header = (function () {
-    function Header(title, value) {
-        this.title = title;
-        this.value = value;
-    }
-    return Header;
-}());
-exports.Header = Header;
-
-
-/***/ }),
-/* 7 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-/**
- * Created by kfaulhaber on 20/07/2017.
- */
-exports.__esModule = true;
-var Media = (function () {
-    //TODO: Check to see if these default values are acceptable
-    function Media(name, description, file, upgrade_to_1080) {
-        if (name === void 0) { name = ""; }
-        if (description === void 0) { description = ""; }
-        if (file === void 0) { file = null; }
-        if (upgrade_to_1080 === void 0) { upgrade_to_1080 = false; }
-        this.name = name;
-        this.description = description;
-        this.file = file;
+var TicketService = (function () {
+    function TicketService(token, httpService, upgrade_to_1080) {
+        this.token = token;
+        this.httpService = httpService;
         this.upgrade_to_1080 = upgrade_to_1080;
     }
-    return Media;
+    TicketService.prototype.open = function () {
+        var data = { type: 'streaming' };
+        if (this.upgrade_to_1080) {
+            data["upgrade_to_1080"] = this.upgrade_to_1080;
+        }
+        var request = http_service_1.HttpService.CreateRequest("POST", routes_1.VIMEO_ROUTES.TICKET(), JSON.stringify(data), {
+            Authorization: "Bearer " + this.token,
+            'Content-Type': 'application/json'
+        });
+        return this.httpService.send(request);
+    };
+    TicketService.prototype.save = function (response) {
+        this.ticket = new ticket_1.Ticket(response.data.upload_link_secure, response.data.ticket_id, response.data.upload_link, response.data.complete_uri, response.data.user);
+    };
+    TicketService.prototype.close = function () {
+        var request = http_service_1.HttpService.CreateRequest("DELETE", routes_1.VIMEO_ROUTES.DEFAULT(this.ticket.completeUri), null, {
+            Authorization: "Bearer " + this.token
+        });
+        return this.httpService.send(request, null, TicketService.CloseResolver);
+    };
+    TicketService.CloseResolver = function (xhr, response) {
+        if (xhr.status < 400) {
+            response.statusCode = status_enum_1.Status.Resolved;
+            response.responseHeaderData = xhr.getResponseHeader("Location");
+        }
+    };
+    return TicketService;
 }());
-exports.Media = Media;
+exports.TicketService = TicketService;
 
 
 /***/ }),
-/* 8 */
+/* 9 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -504,30 +562,6 @@ exports.Request = Request;
 
 
 /***/ }),
-/* 9 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-/**
- * Created by kfaulhaber on 20/07/2017.
- */
-exports.__esModule = true;
-var Response = (function () {
-    function Response(status, statusText, data) {
-        if (data === void 0) { data = null; }
-        this.status = status;
-        this.statusText = statusText;
-        this.data = data;
-        this.range = null;
-        this.duration = -1;
-    }
-    return Response;
-}());
-exports.Response = Response;
-
-
-/***/ }),
 /* 10 */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -537,25 +571,44 @@ exports.Response = Response;
  * Created by kfaulhaber on 24/07/2017.
  */
 exports.__esModule = true;
-var StatData = (function () {
-    function StatData(start, end, prefferedDuration, loaded, total, done) {
-        if (loaded === void 0) { loaded = 0; }
-        if (total === void 0) { total = 0; }
-        if (done === void 0) { done = false; }
-        this.start = start;
-        this.end = end;
-        this.prefferedDuration = prefferedDuration;
-        this.loaded = loaded;
-        this.total = total;
-        this.done = done;
+var Header = (function () {
+    function Header(title, value) {
+        this.title = title;
+        this.value = value;
     }
-    return StatData;
+    return Header;
 }());
-exports.StatData = StatData;
+exports.Header = Header;
 
 
 /***/ }),
 /* 11 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+exports.__esModule = true;
+var status_enum_1 = __webpack_require__(1);
+/**
+ * Created by kfaulhaber on 20/07/2017.
+ */
+var Response = (function () {
+    function Response(status, statusText, data) {
+        if (data === void 0) { data = null; }
+        this.status = status;
+        this.statusText = statusText;
+        this.data = data;
+        this.responseHeaderData = null;
+        this.duration = -1;
+        this.statusCode = status_enum_1.Status.Neutral;
+    }
+    return Response;
+}());
+exports.Response = Response;
+
+
+/***/ }),
+/* 12 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -578,47 +631,13 @@ exports.Ticket = Ticket;
 
 
 /***/ }),
-/* 12 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-exports.__esModule = true;
-var app_1 = __webpack_require__(4);
-var module;
-/**
- * Created by kfaulhaber on 30/06/2017.
- */
-module.exports = app_1.App;
-
-
-/***/ }),
 /* 13 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
-/**
- * Created by Grimbode on 30/06/2017.
- */
 exports.__esModule = true;
-exports.VIMEO_ROUTES = {
-    DEFAULT: function (uri) {
-        if (uri === void 0) { uri = ""; }
-        return "https://api.vimeo.com" + uri;
-    },
-    TICKET: function () { return exports.VIMEO_ROUTES.DEFAULT() + "/me/videos"; }
-};
-
-
-/***/ }),
-/* 14 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-exports.__esModule = true;
-var chunk_1 = __webpack_require__(5);
+var chunk_1 = __webpack_require__(14);
 /**
  * Created by kfaulhaber on 30/06/2017.
  */
@@ -654,18 +673,130 @@ exports.ChunkService = ChunkService;
 
 
 /***/ }),
+/* 14 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+/**
+ * Created by kfaulhaber on 13/07/2017.
+ */
+exports.__esModule = true;
+var Chunk = (function () {
+    function Chunk(content, contentRange) {
+        this.content = content;
+        this.contentRange = contentRange;
+    }
+    return Chunk;
+}());
+exports.Chunk = Chunk;
+
+
+/***/ }),
 /* 15 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 exports.__esModule = true;
-var media_1 = __webpack_require__(7);
+var http_service_1 = __webpack_require__(0);
+var status_enum_1 = __webpack_require__(1);
+/**
+ * Created by kfaulhaber on 30/06/2017.
+ */
+var UploadService = (function () {
+    function UploadService(mediaService, ticketService, httpService, statService) {
+        this.mediaService = mediaService;
+        this.ticketService = ticketService;
+        this.httpService = httpService;
+        this.statService = statService;
+    }
+    UploadService.prototype.send = function (chunk) {
+        console.log(chunk.content, chunk.contentRange);
+        var statData = this.statService.create();
+        this.statService.save(statData);
+        var request = http_service_1.HttpService.CreateRequest("PUT", this.ticketService.ticket.uploadLinkSecure, chunk.content, {
+            'Content-Type': this.mediaService.media.file.type,
+            'Content-Range': chunk.contentRange
+        });
+        return this.httpService.send(request, statData);
+    };
+    UploadService.prototype.getRange = function () {
+        var request = http_service_1.HttpService.CreateRequest("PUT", this.ticketService.ticket.uploadLinkSecure, null, {
+            'Content-Type': this.mediaService.media.file.type,
+            'Content-Range': 'bytes */* '
+        });
+        return this.httpService.send(request, null, UploadService.RangeResolver);
+    };
+    UploadService.RangeResolver = function (xhr, response) {
+        switch (xhr.status) {
+            case 308:
+                response.responseHeaderData = xhr.getResponseHeader("Range");
+                response.statusCode = status_enum_1.Status.Resolved;
+                break;
+            case 200 || 201:
+                response.statusCode = status_enum_1.Status.Resolved;
+                break;
+            default:
+                console.warn("Unexpected xhr status found (" + xhr.status + ").");
+        }
+        if (xhr.status === 308) {
+            response.responseHeaderData = xhr.getResponseHeader("Range");
+        }
+    };
+    return UploadService;
+}());
+exports.UploadService = UploadService;
+
+
+/***/ }),
+/* 16 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+/**
+ * Created by kfaulhaber on 30/06/2017.
+ */
+exports.__esModule = true;
+var ValidatorService = (function () {
+    function ValidatorService(supportedFiles) {
+        this.supportedFiles = supportedFiles;
+    }
+    ValidatorService.prototype.isSupported = function (file) {
+        var type = file.type;
+        if (type.indexOf('/') === -1) {
+            console.warn("Wrong type found (" + type + ").");
+            return false;
+        }
+        var split = type.split('/');
+        if (split[0] !== "video") {
+            console.warn("Only videos are supported, " + type + " given.");
+            return false;
+        }
+        return this.supportedFiles.includes(split[1]);
+    };
+    return ValidatorService;
+}());
+exports.ValidatorService = ValidatorService;
+
+
+/***/ }),
+/* 17 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+exports.__esModule = true;
+var media_1 = __webpack_require__(18);
+var http_service_1 = __webpack_require__(0);
+var routes_1 = __webpack_require__(3);
 /**
  * Created by kfaulhaber on 21/07/2017.
  */
 var MediaService = (function () {
-    function MediaService(options) {
+    function MediaService(httpService, options) {
+        this.httpService = httpService;
         this.options = options;
         this.media = new media_1.Media();
         this.setData(options);
@@ -680,21 +811,60 @@ var MediaService = (function () {
             this.media.name = this.media.file.name;
         }
     };
+    MediaService.prototype.updateVideoData = function (token, videoId) {
+        var request = http_service_1.HttpService.CreateRequest("PATCH", routes_1.VIMEO_ROUTES.VIDEOS(videoId), JSON.stringify(this.media.toJSON()), {
+            Authorization: "Bearer " + token
+        });
+        return this.httpService.send(request);
+    };
     return MediaService;
 }());
 exports.MediaService = MediaService;
 
 
 /***/ }),
-/* 16 */
+/* 18 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+/**
+ * Created by kfaulhaber on 20/07/2017.
+ */
+exports.__esModule = true;
+var Media = (function () {
+    //TODO: Check to see if these default values are acceptable
+    function Media(name, description, file, upgrade_to_1080) {
+        if (name === void 0) { name = ""; }
+        if (description === void 0) { description = ""; }
+        if (file === void 0) { file = null; }
+        if (upgrade_to_1080 === void 0) { upgrade_to_1080 = false; }
+        this.name = name;
+        this.description = description;
+        this.file = file;
+        this.upgrade_to_1080 = upgrade_to_1080;
+    }
+    Media.prototype.toJSON = function () {
+        return {
+            name: this.name,
+            description: this.description
+        };
+    };
+    return Media;
+}());
+exports.Media = Media;
+
+
+/***/ }),
+/* 19 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 exports.__esModule = true;
-var event_service_1 = __webpack_require__(2);
-var utils_1 = __webpack_require__(3);
-var stat_data_1 = __webpack_require__(10);
+var event_service_1 = __webpack_require__(5);
+var utils_1 = __webpack_require__(2);
+var stat_data_1 = __webpack_require__(20);
 /**
  * Created by Grimbode on 14/07/2017.
  */
@@ -751,7 +921,6 @@ var StatService = (function () {
             _this.totalStatData.end = _this.chunkStatData.end;
             _this.previousTotalPercent = Math.max(_this.totalStatData.loaded + _this.chunkStatData.loaded, _this.previousTotalPercent);
             var totalPercent = _this.calculatePercent(_this.previousTotalPercent, _this.totalStatData.total);
-            console.log("total: ", _this.totalStatData.total, _this.previousTotalPercent, totalPercent, _this.previousTotalPercent / _this.totalStatData.total);
             var chunkTimeLeft = (!_this.chunkStatData || _this.chunkStatData.done) ? 0 : _this.estimateTimeLeft(_this.chunkStatData);
             var chunkSecondsLeft = utils_1.TimeUtil.TimeToSeconds(chunkTimeLeft);
             var timeLeft = _this.estimateTimeLeft(_this.totalStatData);
@@ -788,114 +957,30 @@ exports.StatService = StatService;
 
 
 /***/ }),
-/* 17 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-exports.__esModule = true;
-var http_service_1 = __webpack_require__(0);
-var ticket_1 = __webpack_require__(11);
-var routes_1 = __webpack_require__(13);
-/**
- * Created by kfaulhaber on 30/06/2017.
- */
-var TicketService = (function () {
-    function TicketService(token, httpService) {
-        this.token = token;
-        this.httpService = httpService;
-    }
-    TicketService.prototype.open = function () {
-        var request = http_service_1.HttpService.CreateRequest("POST", routes_1.VIMEO_ROUTES.TICKET(), JSON.stringify({ type: 'streaming' }), {
-            Authorization: "Bearer " + this.token,
-            'Content-Type': 'application/json'
-        });
-        return this.httpService.send(request);
-    };
-    TicketService.prototype.save = function (response) {
-        this.ticket = new ticket_1.Ticket(response.data.upload_link_secure, response.data.ticket_id, response.data.upload_link, response.data.complete_uri, response.data.user);
-    };
-    TicketService.prototype.close = function () {
-        var request = http_service_1.HttpService.CreateRequest("DELETE", routes_1.VIMEO_ROUTES.DEFAULT(this.ticket.completeUri), null, {
-            Authorization: "Bearer " + this.token
-        });
-        return this.httpService.send(request);
-    };
-    return TicketService;
-}());
-exports.TicketService = TicketService;
-
-
-/***/ }),
-/* 18 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-exports.__esModule = true;
-var http_service_1 = __webpack_require__(0);
-/**
- * Created by kfaulhaber on 30/06/2017.
- */
-var UploadService = (function () {
-    function UploadService(mediaService, ticketService, httpService, statService) {
-        this.mediaService = mediaService;
-        this.ticketService = ticketService;
-        this.httpService = httpService;
-        this.statService = statService;
-    }
-    UploadService.prototype.send = function (chunk) {
-        console.log(chunk.content, chunk.contentRange);
-        var statData = this.statService.create();
-        this.statService.save(statData);
-        var request = http_service_1.HttpService.CreateRequest("PUT", this.ticketService.ticket.uploadLinkSecure, chunk.content, {
-            'Content-Type': this.mediaService.media.file.type,
-            'Content-Range': chunk.contentRange
-        });
-        return this.httpService.send(request, statData);
-    };
-    UploadService.prototype.getRange = function () {
-        var request = http_service_1.HttpService.CreateRequest("PUT", this.ticketService.ticket.uploadLinkSecure, null, {
-            'Content-Type': this.mediaService.media.file.type,
-            'Content-Range': 'bytes */* '
-        });
-        return this.httpService.send(request);
-    };
-    return UploadService;
-}());
-exports.UploadService = UploadService;
-
-
-/***/ }),
-/* 19 */
+/* 20 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 /**
- * Created by kfaulhaber on 30/06/2017.
+ * Created by kfaulhaber on 24/07/2017.
  */
 exports.__esModule = true;
-var ValidatorService = (function () {
-    function ValidatorService(supportedFiles) {
-        this.supportedFiles = supportedFiles;
+var StatData = (function () {
+    function StatData(start, end, prefferedDuration, loaded, total, done) {
+        if (loaded === void 0) { loaded = 0; }
+        if (total === void 0) { total = 0; }
+        if (done === void 0) { done = false; }
+        this.start = start;
+        this.end = end;
+        this.prefferedDuration = prefferedDuration;
+        this.loaded = loaded;
+        this.total = total;
+        this.done = done;
     }
-    ValidatorService.prototype.isSupported = function (file) {
-        var type = file.type;
-        if (type.indexOf('/') === -1) {
-            console.warn("Wrong type found (" + type + ").");
-            return false;
-        }
-        var split = type.split('/');
-        if (split[0] !== "video") {
-            console.warn("Only videos are supported, " + type + " given.");
-            return false;
-        }
-        return this.supportedFiles.includes(split[1]);
-    };
-    return ValidatorService;
+    return StatData;
 }());
-exports.ValidatorService = ValidatorService;
+exports.StatData = StatData;
 
 
 /***/ })

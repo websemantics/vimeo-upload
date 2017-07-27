@@ -1,7 +1,6 @@
 import {Request} from "../../entities/request";
 import {Header} from "../../entities/header";
 import {Response} from "../../entities/response";
-import {StatService} from "../stat/stat.service";
 import {StatData} from "../../entities/stat_data";
 import {TimeUtil} from "../../utils/utils";
 import {Status} from "../../enums/status.enum";
@@ -11,6 +10,11 @@ import {Status} from "../../enums/status.enum";
     
     
 export class HttpService {
+
+    constructor(
+        public maxAcceptedUploadDuration: number
+    ){}
+
 
     public static DefaultResolver(xhr: XMLHttpRequest): Response {
         let data = null;
@@ -31,7 +35,7 @@ export class HttpService {
             response.statusCode = Status.Rejected
         }
         
-        return Response;
+        return response;
     }
 
     public send<T>(request: Request, statData: StatData = null, resolver: any = null): Promise<T>{
@@ -96,7 +100,9 @@ export class HttpService {
                         statData.end = new Date();
 
                         //TODO: Symplify this.
-                        if(TimeUtil.TimeToSeconds(statData.end.getTime()-statData.start.getTime()) > statData.prefferedDuration*1.5){
+                        if(TimeUtil.TimeToSeconds(statData.end.getTime()-statData.start.getTime()) > statData.prefferedDuration*2){
+                            statData.loaded = 0;
+                            statData.total = 0;
                             statData.done = true;
                             xhr.abort();
                         }

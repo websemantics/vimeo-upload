@@ -13,11 +13,19 @@ export class TicketService {
 
     constructor(
         public token:     string,
-        public httpService: HttpService
+        public httpService: HttpService,
+        public upgrade_to_1080: boolean
     ){}
 
     public open<T>(): Promise<T> {
-        let request = HttpService.CreateRequest("POST", VIMEO_ROUTES.TICKET(), JSON.stringify({ type: 'streaming' }), {
+
+        let data = { type: 'streaming' };
+
+        if(this.upgrade_to_1080){
+            data["upgrade_to_1080"] = this.upgrade_to_1080;
+        }
+
+        let request = HttpService.CreateRequest("POST", VIMEO_ROUTES.TICKET(), JSON.stringify(data), {
             Authorization: `Bearer ${this.token}`,
             'Content-Type': 'application/json'
         });
@@ -45,7 +53,7 @@ export class TicketService {
     public static CloseResolver(xhr: XMLHttpRequest, response: Response){
         if(xhr.status < 400){
             response.statusCode = Status.Resolved;
-            response.responseHeaderData = xhr.getResponseHeader("Location");
+            response.responseHeaderData = xhr.getResponseHeader("Location").replace("/videos/", "");
         }
     }
 }

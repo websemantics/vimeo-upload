@@ -4,6 +4,7 @@ import {TicketService} from "../ticket/ticket.service";
 import {MediaService} from "../media/media.service";
 import {StatService} from "../stat/stat.service";
 import {Status} from "../../enums/status.enum";
+import {Response} from "../../entities/response";
 /**
  * Created by kfaulhaber on 30/06/2017.
  */

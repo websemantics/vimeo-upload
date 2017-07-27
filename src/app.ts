@@ -25,10 +25,12 @@ export class App {
 
     //TODO: find a cleaner way for this
     public failCount: number = 0;
-    public maxFailAccount: number = 5;
+    public maxAcceptedFails: number;
 
-    constructor(options: any = {}){
+    constructor(){}
 
+    //TODO: See if this should go in an init function.
+    public init(options: any = {}){
         for(let prop in options){
             if(!options.hasOwnProperty(prop)){
                 continue;
@@ -42,7 +44,14 @@ export class App {
             }
         }
 
+        this.maxAcceptedFails = DEFAULT_VALUES.maxAcceptedFails;
+
+        this.httpService = new HttpService(
+            DEFAULT_VALUES.maxAcceptedUploadDuration
+        );
+
         this.mediaService = new MediaService(
+            this.httpService,
             DEFAULT_VALUES
         );
 
@@ -57,14 +66,11 @@ export class App {
             this.chunkService
         );
 
-        this.httpService = new HttpService();
-
         this.ticketService = new TicketService(
             DEFAULT_VALUES.token,
-            this.httpService
+            this.httpService,
+            DEFAULT_VALUES.upgrade_to_1080
         );
-
-
 
         this.uploadService = new UploadService(
             this.mediaService,
@@ -76,17 +82,10 @@ export class App {
         this.validatorService = new ValidatorService(
             DEFAULT_VALUES.supportedFiles
         );
-        
-
-
     }
     
     public start(options: any = {}){
-        this.mediaService.setData(options);
-
-        if(options.token){
-            this.ticketService.token = DEFAULT_VALUES.token = options.token;
-        }
+        this.init(options);
 
         //TODO: Add error if not supported.
 
@@ -109,7 +108,7 @@ export class App {
             this.chunkService.updateSize(this.statService.getChunkUploadDuration());
             this.check();
         }).catch(error=>{
-            if(this.failCount <= this.maxFailAccount){
+            if(this.failCount <= this.maxAcceptedFails){
                 this.failCount++;
                 console.error(`Error sending chunk: ${this.failCount}`);
                 //TODO: Probably should modify
@@ -149,6 +148,9 @@ export class App {
     public done(){
         this.statService.totalStatData.done = true;
         this.ticketService.close().then((response: Response)=>{
+
+            let videoId = response.responseHeaderData;
+
             this.statService.stop();
             console.log(`Delete success:`, response);
         }).catch((error)=>{

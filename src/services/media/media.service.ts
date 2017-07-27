@@ -1,4 +1,6 @@
 import {Media} from "../../entities/media";
+import {HttpService} from "../http/http.service";
+import {VIMEO_ROUTES} from "../../routes/routes";
 /**
  * Created by kfaulhaber on 21/07/2017.
  */
@@ -8,6 +10,7 @@ export class MediaService {
     public media: Media;
 
     constructor(
+        public httpService: HttpService,
         public options: any
     ){
         this.media = new Media();
@@ -27,7 +30,10 @@ export class MediaService {
 
     }
     
-    public updateVideoData(video_id: number){
-        
+    public updateVideoData<T>(token: string, videoId: number): Promise<T>{
+        let request = HttpService.CreateRequest("PATCH", VIMEO_ROUTES.VIDEOS(videoId), JSON.stringify(this.media.toJSON()), {
+            Authorization: `Bearer ${token}`
+        });
+        return this.httpService.send(request);
     }
 }
