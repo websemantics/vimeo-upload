@@ -8,82 +8,82 @@ import {MediaService} from "./services/media/media.service";
 import {Response} from "./entities/response";
 import {HttpService} from "./services/http/http.service";
 import {StatService} from "./services/stat/stat.service";
-/**
- * Created by Grimbode on 12/07/2017.
- */
-
+import {Header} from "./entities/header";
 
 export class App {
-    
-    public ticketService: TicketService;
-    public chunkService: ChunkService;
-    public uploadService: UploadService;
-    public validatorService: ValidatorService;
-    public mediaService: MediaService;
-    public statService: StatService;
-    public httpService: HttpService;
 
-    //TODO: find a cleaner way for this
-    public failCount: number = 0;
-    public maxAcceptedFails: number;
+    //Defining all services
+    private ticketService: TicketService;
+    private chunkService: ChunkService;
+    private uploadService: UploadService;
+    private validatorService: ValidatorService;
+    private mediaService: MediaService;
+    private statService: StatService;
+    private httpService: HttpService;
 
-    constructor(){}
+    //Defining other properties
+    private failCount: number = 0;
+    private maxAcceptedFails: number;
+    private retryTimeout: number;
 
-    //TODO: See if this should go in an init function.
+    /**
+     * Method that initializes the VimeoUpload library. Called everytime an upload is started.
+     * Resets all the services and properties. To see "config/config.ts" for all properties that can be added to options.
+     * @param options
+     */
     public init(options: any = {}){
-        for(let prop in options){
-            if(!options.hasOwnProperty(prop)){
-                continue;
-            }
-            switch(true){
-                case DEFAULT_VALUES.hasOwnProperty(prop):
-                    DEFAULT_VALUES[prop] = options[prop];
-                    break;
-                default:
-                    console.warn(`Unrecognized property: ${prop}`);
+
+        let values: any = {};
+
+        //We loop through all the default values and see if options overides specific ones. All new properties are added to values object.
+        for(let prop in DEFAULT_VALUES){
+            if(DEFAULT_VALUES.hasOwnProperty(prop)){
+                values[prop] = (options.hasOwnProperty(prop)) ? options[prop]: DEFAULT_VALUES[prop];
             }
         }
 
-        this.maxAcceptedFails = DEFAULT_VALUES.maxAcceptedFails;
-
+        this.maxAcceptedFails = values.maxAcceptedFails;
         this.httpService = new HttpService(
-            DEFAULT_VALUES.maxAcceptedUploadDuration
+            values.maxAcceptedUploadDuration
         );
-
         this.mediaService = new MediaService(
             this.httpService,
-            DEFAULT_VALUES
+            values.file,
+            values.name,
+            values.description,
+            values.upgrade_to_1080,
+            values.useDefaultFileName,
+            values.private
         );
-
         this.chunkService = new ChunkService(
             this.mediaService,
-            DEFAULT_VALUES.preferredUploadDuration,
-            DEFAULT_VALUES.chunkSize
+            values.preferredUploadDuration,
+            values.chunkSize
         );
-
         this.statService = new StatService(
-            DEFAULT_VALUES.timeInterval,
+            values.timeInterval,
             this.chunkService
         );
-
         this.ticketService = new TicketService(
-            DEFAULT_VALUES.token,
+            values.token,
             this.httpService,
-            DEFAULT_VALUES.upgrade_to_1080
+            values.upgrade_to_1080
         );
-
         this.uploadService = new UploadService(
             this.mediaService,
             this.ticketService,
             this.httpService,
             this.statService
         );
-
         this.validatorService = new ValidatorService(
-            DEFAULT_VALUES.supportedFiles
+            values.supportedFiles
         );
     }
-    
+
+    /**
+     * Start method that'll initiate the upload, create the upload ticket and start the upload loop.
+     * @param options
+     */
     public start(options: any = {}){
         this.init(options);
 
@@ -97,32 +97,51 @@ export class App {
                 this.statService.start();
                 this.process();
             }).catch((error)=>{
-                console.log(`Error occured while generating ticket. ${error}`);
+                if(this.failCount <= this.maxAcceptedFails){
+                    this.failCount++;
+                    EventService.Dispatch("error", { message:`Error creating ticket.`, error});
+                    setTimeout(()=>{
+                        this.start(options);
+                    }, this.retryTimeout);
+                }
             });
     }
 
+    /**
+     * Process method that will seek the next chunk to upload
+     */
     private process(){
         let chunk = this.chunkService.create();
-        console.log(chunk.content, chunk.contentRange);
         this.uploadService.send(chunk).then((response: Response) => {
             this.chunkService.updateSize(this.statService.getChunkUploadDuration());
             this.check();
         }).catch(error=>{
             if(this.failCount <= this.maxAcceptedFails){
                 this.failCount++;
-                console.error(`Error sending chunk: ${this.failCount}`);
-                //TODO: Probably should modify
+                EventService.Dispatch("error", { message:`Error sending chunk.`, error});
                 this.chunkService.updateSize(this.statService.getChunkUploadDuration());
-                this.check();
+                setTimeout(()=>{
+                    this.check();
+                }, this.retryTimeout);
             }
         });
     }
 
+    /**
+     * Check method that is called after each chunk upload to update the byte range.
+     */
     private check(){
         this.uploadService.getRange().then((response: Response) => {
             switch(response.status){
                 case 308:
-                    this.chunkService.updateOffset(response.responseHeaderData);
+
+                    //noinspection TypeScriptValidateTypes
+                    let range: Header = response.responseHeaders.find((header: Header) => {
+                        if(header === null && header === undefined) return false;
+                        return header.title === "Range";
+                    });
+
+                    this.chunkService.updateOffset(range.value);
                     if(this.chunkService.isDone()){
                         this.done();
                         return;
@@ -130,39 +149,68 @@ export class App {
                     this.process();
                     break;
                 case 200 || 201:
-                    this.ticketService.close().then((response:any)=>{
-                        console.log(response);
-                    }).catch(error=>{
-                       console.log(error);
-                    });
+                    this.done();
                     break;
                 default:
                     console.warn(`Unrecognized status code (${response.status}) for chunk range.`)
             }
         }).catch(error=>{
-            console.error(`Error getting chunk range`, error);
+            EventService.Dispatch("error", { message: `Unable to get range.`, error});
+            if(this.failCount <= this.maxAcceptedFails){
+                this.failCount++;
+                setTimeout(()=>{
+                    this.check();
+                }, this.retryTimeout);
+            }
+
         })
     }
 
-    //TODO: find a way to reset
-    public done(){
+    /**
+     * Done method that is called when an upload has been completed. Closes the upload ticket.
+     */
+    private done(){
         this.statService.totalStatData.done = true;
         this.ticketService.close().then((response: Response)=>{
-
-            let videoId = response.responseHeaderData;
-
             this.statService.stop();
+            try{
+                //noinspection TypeScriptValidateTypes
+                let vimeoId: number = parseInt(response.responseHeaders.find((header: Header) => {
+                    //noinspection TypeScriptValidateTypes
+                    if(header === null && header === undefined) return false;
+                    return header.title === "Location";
+                }).value.replace("/videos/", ""));
+                this.updateVideo(vimeoId);
+
+            }catch(error){
+                console.log(`Error retrieving Vimeo Id.`);
+            }
+
             console.log(`Delete success:`, response);
         }).catch((error)=>{
             this.statService.stop();
-            console.warn(`Delete failed:`, error);
+            EventService.Dispatch("error", { message:`Unable to close upload ticket.`, error});
         });
     }
 
-    public abort(){
-        EventService.Dispatch("uploadaborted");
-        this.done();
+    /**
+     * UpdateVideo method
+     * @param vimeoId
+     */
+    private updateVideo(vimeoId: number){
+        this.mediaService.updateVideoData(this.ticketService.token, vimeoId).then((response: Response) => {
+            let meta = MediaService.GetMeta(vimeoId, response.data);
+            EventService.Dispatch("complete", meta);
+        }).catch(error=>{
+            EventService.Dispatch("error", { message: `Unable to update video ${vimeoId} with name and description.`, error})
+        });
     }
+
+    /**
+     * on method to add a listener. See config/config.ts for a list of available events
+     * @param eventName
+     * @param callback
+     */
     public on(eventName: string, callback: any = null){
         if(!EventService.Exists(eventName)) return;
         if(callback === null){
@@ -170,7 +218,12 @@ export class App {
         }
         EventService.Add(eventName, callback);
     }
-    
+
+    /**
+     * off method to remove a listener. See config/config.ts for a list of available events
+     * @param eventName
+     * @param callback
+     */
     public off(eventName: string, callback: any = null){
         if(!EventService.Exists(eventName)) return;
         if(callback === null){

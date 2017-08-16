@@ -11,12 +11,22 @@ export class TicketService {
 
     public ticket:Ticket;
 
+    /**
+     * constructor that takes 3 paramaters
+     * @param token
+     * @param httpService
+     * @param upgrade_to_1080
+     */
     constructor(
         public token:     string,
         public httpService: HttpService,
         public upgrade_to_1080: boolean
     ){}
 
+    /**
+     * open method that creates a ticket request
+     * @returns {Promise<T>}
+     */
     public open<T>(): Promise<T> {
 
         let data = { type: 'streaming' };
@@ -33,6 +43,10 @@ export class TicketService {
         return this.httpService.send(request);
     }
 
+    /**
+     * save method that takes a response from creating a ticket upload request and saves it
+     * @param response
+     */
     public save(response: Response){
         this.ticket = new Ticket(
             response.data.upload_link_secure,
@@ -43,18 +57,16 @@ export class TicketService {
         );
     }
 
+    /**
+     * close method that sends a DELETE request to the ticket's complete Uri to complete and finalize the upload.
+     * Called at the end of the upload when all the bytes have been sent.
+     * @returns {Promise<T>}
+     */
     public close<T>(): Promise<T>{
         let request = HttpService.CreateRequest("DELETE", VIMEO_ROUTES.DEFAULT(this.ticket.completeUri), null, {
             Authorization: `Bearer ${this.token}`
         });
-        return this.httpService.send(request, null, TicketService.CloseResolver)
-    }
-
-    public static CloseResolver(xhr: XMLHttpRequest, response: Response){
-        if(xhr.status < 400){
-            response.statusCode = Status.Resolved;
-            response.responseHeaderData = xhr.getResponseHeader("Location").replace("/videos/", "");
-        }
+        return this.httpService.send(request)
     }
 }
 

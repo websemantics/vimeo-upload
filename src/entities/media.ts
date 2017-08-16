@@ -4,18 +4,31 @@
 
 export class Media {
 
-    //TODO: Check to see if these default values are acceptable
+    /**
+     * constructor
+     * @param name
+     * @param description
+     * @param file
+     * @param upgrade_to_1080
+     * @param privacy
+     */
     constructor(
-        public name: string             = "",
-        public description: string      = "",
-        public file: File               = null,
-        public upgrade_to_1080: boolean = false
+        public name: string,
+        public description: string,
+        public file: File,
+        public upgrade_to_1080: boolean,
+        public privacy: boolean
     ){}
 
+    /**
+     * toJSON method that returns the JSON version of the Media.
+     * @returns {{name: string, description: string, [privacy.view]: (string|string)}}
+     */
     public toJSON(): Object {
         return {
-            name:           this.name,
-            description:    this.description
+            name:                   this.name,
+            description:            this.description,
+            'privacy.view':        (this.privacy) ? 'nobody' : 'anybody'
         }
     }
 }

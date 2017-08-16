@@ -4,10 +4,19 @@
 
 export class ValidatorService {
 
+    /**
+     * constructor that takes in a list of supported video files
+     * @param supportedFiles
+     */
     constructor(
         public supportedFiles: string[]
     ){}
 
+    /**
+     * Method that takes a file and decides whether it's supported
+     * @param file
+     * @returns {boolean}
+     */
     public isSupported(file: File) {
         let type = file.type;
 

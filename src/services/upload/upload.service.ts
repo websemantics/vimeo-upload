@@ -12,6 +12,13 @@ import {Response} from "../../entities/response";
 
 export class UploadService {
 
+    /**
+     * constructor that has mulitple dependencies to other services
+     * @param mediaService
+     * @param ticketService
+     * @param httpService
+     * @param statService
+     */
     constructor(
         public mediaService: MediaService,
         public ticketService: TicketService,
@@ -19,8 +26,12 @@ export class UploadService {
         public statService: StatService
     ){}
 
+    /**
+     * Method that sends a request with the video chunk data
+     * @param chunk
+     * @returns {Promise<T>}
+     */
         public send<T>(chunk: Chunk): Promise<T>{
-            console.log(chunk.content, chunk.contentRange);
 
             let statData = this.statService.create();
             this.statService.save(statData);
@@ -32,30 +43,15 @@ export class UploadService {
             return this.httpService.send(request, statData);
     }
 
+    /**
+     * getRange method that gets the byte range of the already uploaded video content
+     * @returns {Promise<T>}
+     */
     public getRange<T>(): Promise<T>{
         let request = HttpService.CreateRequest("PUT", this.ticketService.ticket.uploadLinkSecure, null, {
             'Content-Type': this.mediaService.media.file.type,
             'Content-Range': 'bytes */* '
         });
-        return this.httpService.send(request, null, UploadService.RangeResolver);
+        return this.httpService.send(request);
     }
-
-    public static RangeResolver(xhr: XMLHttpRequest, response: Response) {
-        switch(xhr.status){
-            case 308:
-                response.responseHeaderData = xhr.getResponseHeader("Range");
-                response.statusCode = Status.Resolved;
-                break;
-            case 200 || 201:
-                response.statusCode = Status.Resolved;
-                break;
-            default:
-                console.warn(`Unexpected xhr status found (${xhr.status}).`);
-        }
-
-        if(xhr.status === 308){
-            response.responseHeaderData = xhr.getResponseHeader("Range");
-        }
-    }
-
 }

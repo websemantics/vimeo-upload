@@ -9,31 +9,69 @@ export class MediaService {
 
     public media: Media;
 
+    /**
+     * constructor that initiates the services with the list of dependencies
+     * @param httpService
+     * @param file
+     * @param name
+     * @param description
+     * @param upgrade_to_1080
+     * @param useDefaultFileName
+     * @param privacy
+     */
     constructor(
         public httpService: HttpService,
-        public options: any
+        file: File,
+        name: string,
+        description: string,
+        upgrade_to_1080: boolean,
+        useDefaultFileName: boolean,
+        privacy: boolean
     ){
-        this.media = new Media();
-        this.setData(options);
-    }
 
-    public setData(options: any){
-        for(let prop in options){
-            if(options.hasOwnProperty(prop) && this.media.hasOwnProperty(prop)){
-                this.media[prop] = options[prop];
-            }
-        }
+        let mediaName = (useDefaultFileName) ? file.name : name;
 
-        if(this.media.file !== null && this.media.name === ""){
+        this.media = new Media(mediaName, description, file, upgrade_to_1080, privacy);
+
+        if(useDefaultFileName){
             this.media.name = this.media.file.name;
         }
-
     }
-    
-    public updateVideoData<T>(token: string, videoId: number): Promise<T>{
-        let request = HttpService.CreateRequest("PATCH", VIMEO_ROUTES.VIDEOS(videoId), JSON.stringify(this.media.toJSON()), {
+
+    /**
+     * updateVideoData method that sends a request to edit video information.
+     * Will not work if the token does not have the "EDIT" scope. Will return a 403 forbidden.
+     * @param token
+     * @param vimeoId
+     * @returns {Promise<T>}
+     */
+    public updateVideoData<T>(token: string, vimeoId: number): Promise<T>{
+
+        let params = this.media.toJSON();
+
+        let query = Object.keys(this.media.toJSON()).map(key=>`${encodeURIComponent(key)}=${encodeURIComponent(params[key])}`);
+        console.log("data", params, query)
+        
+        let request = HttpService.CreateRequest("PATCH", VIMEO_ROUTES.VIDEOS(vimeoId), query, {
             Authorization: `Bearer ${token}`
         });
         return this.httpService.send(request);
+    }
+
+    /**
+     * GetMeta static method returns an object with data from updateVideoData response
+     * @param vimeoId
+     * @param data
+     * @returns {{id: number, link: (any|HTMLLinkElement|(function(string): string)), name: any, uri: any, createdTime: any}}
+     * @constructor
+     */
+    public static GetMeta(vimeoId: number, data: any): Object{
+        return {
+            id:             vimeoId,
+            link:           data.link,
+            name:           data.name,
+            uri:            data.uri,
+            createdTime:    data.created_time
+        };
     }
 }

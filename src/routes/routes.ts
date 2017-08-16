@@ -1,5 +1,8 @@
 /**
- * Created by Grimbode on 30/06/2017.
+ * Created by Kfaulhaber on 30/06/2017.
+ *
+ * Basic route creater
+ *
  */
 
 export const VIMEO_ROUTES = {

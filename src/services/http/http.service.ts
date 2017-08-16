@@ -11,11 +11,21 @@ import {Status} from "../../enums/status.enum";
     
 export class HttpService {
 
+    /**
+     * constructor
+     * @param maxAcceptedUploadDuration
+     */
     constructor(
         public maxAcceptedUploadDuration: number
     ){}
 
 
+    /**
+     * DefaultResolver that decides if the xhr response is valid, and sends custom Response
+     * @param xhr
+     * @returns {Response}
+     * @constructor
+     */
     public static DefaultResolver(xhr: XMLHttpRequest): Response {
         let data = null;
 
@@ -31,24 +41,36 @@ export class HttpService {
             data
         );
 
-        if(xhr.status >= 400){
+        response.responseHeaders = xhr.getAllResponseHeaders().split("\r\n").filter((rawHeader: string) => {
+            return rawHeader.length > 0;
+        }).map((rawHeader: string)=>{
+            let index = rawHeader.indexOf(":");
+            return new Header(rawHeader.slice(0, index).trim(), rawHeader.slice(index+1).trim());
+        });
+
+        console.log(response.responseHeaders);
+
+        if(xhr.status > 308){
             response.statusCode = Status.Rejected
+        }else{
+            response.statusCode = Status.Resolved
         }
         
         return response;
     }
 
-    public send<T>(request: Request, statData: StatData = null, resolver: any = null): Promise<T>{
+    /**
+     * send method that sets the headers, the different callbacks and sends a request with data.
+     * @param request
+     * @param statData
+     * @returns {Promise<T>}
+     */
+    public send<T>(request: Request, statData: StatData = null): Promise<T>{
         return new Promise((resolve: any, reject: any) => {
             let xhr = new XMLHttpRequest();
 
             xhr.open(request.method, request.url, true);
             request.headers.forEach((header: Header)=> xhr.setRequestHeader(header.title, header.value));
-
-            //TODO: Check if needed.
-            window.addEventListener("uploadaborted", ()=>{
-                xhr.abort();
-            }, false);
 
             xhr.onload = () => {
                 if(statData !== null){
@@ -58,26 +80,10 @@ export class HttpService {
 
                 let response = HttpService.DefaultResolver(xhr);
 
+
                 switch(true){
                     case response.statusCode === Status.Resolved:
                         resolve(response);
-                        break;
-                    case response.statusCode === Status.Neutral && resolver !== null:
-                        resolver(xhr, response);
-
-                        if(response.statusCode === Status.Resolved){
-                            resolve(response);
-                        }else{
-                            reject(response);
-                        }
-
-                        break;
-                    case response.statusCode === Status.Neutral && resolver === null:
-                        if(xhr.status < 300){
-                            resolve(response);
-                        }else{
-                            reject(response);
-                        }
                         break;
                     default:
                         reject(response);
@@ -89,7 +95,7 @@ export class HttpService {
             };
 
             xhr.onerror = () => {
-                reject(new Response(xhr.status, xhr.statusText, xhr.response || null));
+                reject(new Response(xhr.status, xhr.statusText, xhr.response));
             };
 
             if(statData != null){
@@ -119,6 +125,15 @@ export class HttpService {
         });
     }
 
+    /**
+     * Method that takes raw information to build a Request object.
+     * @param method
+     * @param url
+     * @param data
+     * @param headers
+     * @returns {Request}
+     * @constructor
+     */
     static CreateRequest(
         method: string,
         url: string,

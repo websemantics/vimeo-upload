@@ -1,6 +1,9 @@
 import {Header} from "./header";
 /**
  * Created by kfaulhaber on 17/07/2017.
+ *
+ * Custom Request Entity
+ *
  */
 
 

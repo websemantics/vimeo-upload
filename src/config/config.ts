@@ -5,15 +5,18 @@
 export const DEFAULT_VALUES = {
   preferredUploadDuration:  20,
   chunkSize:                1024*1024,
-  token:                    "TOKEN_STRING_HERE",
+  token:                    "TOKEN_STRING_HERE", //Required
   supportedFiles:           ["mov", "mpeg4", "mp4", "avi", "wmv", "mpegps", "flv", "3gpp", "webm"],
   name:                     "",
   description:              "",
-  file:                     null,
+  file:                     null, //Required
   upgrade_to_1080:          false,
   timeInterval:             150,
   maxAcceptedFails:         20,
-  maxAcceptedUploadDuration: 60
+  maxAcceptedUploadDuration: 60,
+  useDefaultFileName:       false,
+  privacy:                  false,
+  retryTimeout:             5000
 };
 
 export const DEFAULT_EVENTS = {
@@ -21,6 +24,6 @@ export const DEFAULT_EVENTS = {
   totalprogresschanged: (event: CustomEvent)=>console.log(`Default: Total Progress Update: ${event.detail}/100`),
   estimatedtimechanged: (event: CustomEvent)=>console.log(`Default: Estimated Time Update: ${event.detail}`),
   estimatedchunktimechanged: (event: CustomEvent)=>console.log(`Default: Estimated Chunk Time Update: ${event.detail}`),
-  estimateduploadspeedchanged: (event: CustomEvent)=>console.log(`Default: Estimated Upload Speed Changed: ${event.detail} mb/s`),
-  uploadaborted: (event: CustomEvent)=>console.log(`Default: Upload aborted detected.`)
+  error:                  ()=>{},
+  complete:               ()=>{}
 };

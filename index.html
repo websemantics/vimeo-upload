@@ -225,16 +225,12 @@
             totalProgress.innerHTML = '&nbsp;' + progress + '%'
         });
 
-        vimeoUpload.on("estimatedtimechanged", function(event){
-            estimatedTimeElement.innerText = "Total " + event.detail.seconds + " seconds left, string format: " + event.detail.timeFormat;
+        vimeoUpload.on("error", function(event){
+            console.log(event.detail.message, event.detail.error);
         });
 
-        vimeoUpload.on("estimatedchunktimechanged", function(event){
-            estimatedChunkTimeElement.innerText = "Chunk " + event.detail.seconds + " seconds left, string format: " + event.detail.timeFormat;
-        });
-
-        vimeoUpload.on("estimateduploadspeedchanged", function(event){
-            estimatedUploadSpeedElement.innerText = event.detail + " m/s";
+        vimeoUpload.on("complete", function(event){
+            console.log("Meta data", event.detail);
         });
 
         function handleFileSelect(evt){
@@ -249,7 +245,7 @@
             vimeoUpload.start({
                 name: document.getElementById('videoName').value,
                 description: document.getElementById('videoDescription').value,
-                private: document.getElementById('make_private').checked,
+                privacy: document.getElementById('make_private').checked,
                 file: files[0],
                 token: document.getElementById('accessToken').value,
                 upgrade_to_1080: document.getElementById('upgrade_to_1080').checked

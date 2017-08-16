@@ -92,22 +92,27 @@ var HttpService = (function () {
             data = xhr.response;
         }
         var response = new response_1.Response(xhr.status, xhr.statusText, data);
-        if (xhr.status >= 400) {
+        response.responseHeaders = xhr.getAllResponseHeaders().split("\r\n").filter(function (rawHeader) {
+            return rawHeader.length > 0;
+        }).map(function (rawHeader) {
+            var index = rawHeader.indexOf(":");
+            return new header_1.Header(rawHeader.slice(0, index).trim(), rawHeader.slice(index + 1).trim());
+        });
+        console.log(response.responseHeaders);
+        if (xhr.status > 308) {
             response.statusCode = status_enum_1.Status.Rejected;
+        }
+        else {
+            response.statusCode = status_enum_1.Status.Resolved;
         }
         return response;
     };
-    HttpService.prototype.send = function (request, statData, resolver) {
+    HttpService.prototype.send = function (request, statData) {
         if (statData === void 0) { statData = null; }
-        if (resolver === void 0) { resolver = null; }
         return new Promise(function (resolve, reject) {
             var xhr = new XMLHttpRequest();
             xhr.open(request.method, request.url, true);
             request.headers.forEach(function (header) { return xhr.setRequestHeader(header.title, header.value); });
-            //TODO: Check if needed.
-            window.addEventListener("uploadaborted", function () {
-                xhr.abort();
-            }, false);
             xhr.onload = function () {
                 if (statData !== null) {
                     statData.end = new Date();
@@ -118,23 +123,6 @@ var HttpService = (function () {
                     case response.statusCode === status_enum_1.Status.Resolved:
                         resolve(response);
                         break;
-                    case response.statusCode === status_enum_1.Status.Neutral && resolver !== null:
-                        resolver(xhr, response);
-                        if (response.statusCode === status_enum_1.Status.Resolved) {
-                            resolve(response);
-                        }
-                        else {
-                            reject(response);
-                        }
-                        break;
-                    case response.statusCode === status_enum_1.Status.Neutral && resolver === null:
-                        if (xhr.status < 300) {
-                            resolve(response);
-                        }
-                        else {
-                            reject(response);
-                        }
-                        break;
                     default:
                         reject(response);
                 }
@@ -143,7 +131,7 @@ var HttpService = (function () {
                 reject(new response_1.Response(xhr.status, xhr.statusText, xhr.response));
             };
             xhr.onerror = function () {
-                reject(new response_1.Response(xhr.status, xhr.statusText, xhr.response || null));
+                reject(new response_1.Response(xhr.status, xhr.statusText, xhr.response));
             };
             if (statData != null) {
                 xhr.upload.addEventListener("progress", function (data) {
@@ -276,15 +264,18 @@ exports.DEFAULT_VALUES = {
     upgrade_to_1080: false,
     timeInterval: 150,
     maxAcceptedFails: 20,
-    maxAcceptedUploadDuration: 60
+    maxAcceptedUploadDuration: 60,
+    useDefaultFileName: false,
+    privacy: false,
+    retryTimeout: 5000
 };
 exports.DEFAULT_EVENTS = {
     chunkprogresschanged: function (event) { return console.log("Default: Chunk Progress Update: " + event.detail + "/100"); },
     totalprogresschanged: function (event) { return console.log("Default: Total Progress Update: " + event.detail + "/100"); },
     estimatedtimechanged: function (event) { return console.log("Default: Estimated Time Update: " + event.detail); },
     estimatedchunktimechanged: function (event) { return console.log("Default: Estimated Chunk Time Update: " + event.detail); },
-    estimateduploadspeedchanged: function (event) { return console.log("Default: Estimated Upload Speed Changed: " + event.detail + " mb/s"); },
-    uploadaborted: function (event) { return console.log("Default: Upload aborted detected."); }
+    error: function () { },
+    complete: function () { }
 };
 
 
@@ -366,26 +357,20 @@ var App = (function () {
     //TODO: See if this should go in an init function.
     App.prototype.init = function (options) {
         if (options === void 0) { options = {}; }
-        for (var prop in options) {
-            if (!options.hasOwnProperty(prop)) {
-                continue;
-            }
-            switch (true) {
-                case config_1.DEFAULT_VALUES.hasOwnProperty(prop):
-                    config_1.DEFAULT_VALUES[prop] = options[prop];
-                    break;
-                default:
-                    console.warn("Unrecognized property: " + prop);
+        var values = {};
+        for (var prop in config_1.DEFAULT_VALUES) {
+            if (config_1.DEFAULT_VALUES.hasOwnProperty(prop)) {
+                values[prop] = (options.hasOwnProperty(prop)) ? options[prop] : config_1.DEFAULT_VALUES[prop];
             }
         }
-        this.maxAcceptedFails = config_1.DEFAULT_VALUES.maxAcceptedFails;
-        this.httpService = new http_service_1.HttpService(config_1.DEFAULT_VALUES.maxAcceptedUploadDuration);
-        this.mediaService = new media_service_1.MediaService(this.httpService, config_1.DEFAULT_VALUES);
-        this.chunkService = new chunk_service_1.ChunkService(this.mediaService, config_1.DEFAULT_VALUES.preferredUploadDuration, config_1.DEFAULT_VALUES.chunkSize);
-        this.statService = new stat_service_1.StatService(config_1.DEFAULT_VALUES.timeInterval, this.chunkService);
-        this.ticketService = new ticket_service_1.TicketService(config_1.DEFAULT_VALUES.token, this.httpService, config_1.DEFAULT_VALUES.upgrade_to_1080);
+        this.maxAcceptedFails = values.maxAcceptedFails;
+        this.httpService = new http_service_1.HttpService(values.maxAcceptedUploadDuration);
+        this.mediaService = new media_service_1.MediaService(this.httpService, values.file, values.name, values.description, values.upgrade_to_1080, values.useDefaultFileName, values.private);
+        this.chunkService = new chunk_service_1.ChunkService(this.mediaService, values.preferredUploadDuration, values.chunkSize);
+        this.statService = new stat_service_1.StatService(values.timeInterval, this.chunkService);
+        this.ticketService = new ticket_service_1.TicketService(values.token, this.httpService, values.upgrade_to_1080);
         this.uploadService = new upload_service_1.UploadService(this.mediaService, this.ticketService, this.httpService, this.statService);
-        this.validatorService = new validator_service_1.ValidatorService(config_1.DEFAULT_VALUES.supportedFiles);
+        this.validatorService = new validator_service_1.ValidatorService(values.supportedFiles);
     };
     App.prototype.start = function (options) {
         var _this = this;
@@ -401,23 +386,29 @@ var App = (function () {
             _this.statService.start();
             _this.process();
         })["catch"](function (error) {
-            console.log("Error occured while generating ticket. " + error);
+            if (_this.failCount <= _this.maxAcceptedFails) {
+                _this.failCount++;
+                event_service_1.EventService.Dispatch("error", { message: "Error creating ticket.", error: error });
+                setTimeout(function () {
+                    _this.start(options);
+                }, _this.retryTimeout);
+            }
         });
     };
     App.prototype.process = function () {
         var _this = this;
         var chunk = this.chunkService.create();
-        console.log(chunk.content, chunk.contentRange);
         this.uploadService.send(chunk).then(function (response) {
             _this.chunkService.updateSize(_this.statService.getChunkUploadDuration());
             _this.check();
         })["catch"](function (error) {
             if (_this.failCount <= _this.maxAcceptedFails) {
                 _this.failCount++;
-                console.error("Error sending chunk: " + _this.failCount);
-                //TODO: Probably should modify
+                event_service_1.EventService.Dispatch("error", { message: "Error sending chunk.", error: error });
                 _this.chunkService.updateSize(_this.statService.getChunkUploadDuration());
-                _this.check();
+                setTimeout(function () {
+                    _this.check();
+                }, _this.retryTimeout);
             }
         });
     };
@@ -426,7 +417,14 @@ var App = (function () {
         this.uploadService.getRange().then(function (response) {
             switch (response.status) {
                 case 308:
-                    _this.chunkService.updateOffset(response.responseHeaderData);
+                    //noinspection TypeScriptValidateTypes
+                    var range = response.responseHeaders.find(function (header) {
+                        if (header === null && header === undefined)
+                            return false;
+                        return header.title === "Range";
+                    });
+                    console.log(range);
+                    _this.chunkService.updateOffset(range.value);
                     if (_this.chunkService.isDone()) {
                         _this.done();
                         return;
@@ -434,34 +432,52 @@ var App = (function () {
                     _this.process();
                     break;
                 case 200 || 201:
-                    _this.ticketService.close().then(function (response) {
-                        console.log(response);
-                    })["catch"](function (error) {
-                        console.log(error);
-                    });
+                    _this.done();
                     break;
                 default:
                     console.warn("Unrecognized status code (" + response.status + ") for chunk range.");
             }
         })["catch"](function (error) {
-            console.error("Error getting chunk range", error);
+            event_service_1.EventService.Dispatch("error", { message: "Unable to get range.", error: error });
+            if (_this.failCount <= _this.maxAcceptedFails) {
+                _this.failCount++;
+                setTimeout(function () {
+                    _this.check();
+                }, _this.retryTimeout);
+            }
         });
     };
-    //TODO: find a way to reset
     App.prototype.done = function () {
         var _this = this;
         this.statService.totalStatData.done = true;
         this.ticketService.close().then(function (response) {
             _this.statService.stop();
+            try {
+                //noinspection TypeScriptValidateTypes
+                var vimeoId = parseInt(response.responseHeaders.find(function (header) {
+                    //noinspection TypeScriptValidateTypes
+                    if (header === null && header === undefined)
+                        return false;
+                    return header.title === "Location";
+                }).value.replace("/videos/", ""));
+                _this.updateVideo(vimeoId);
+            }
+            catch (error) {
+                console.log("Error retrieving Vimeo Id.");
+            }
             console.log("Delete success:", response);
         })["catch"](function (error) {
             _this.statService.stop();
-            console.warn("Delete failed:", error);
+            event_service_1.EventService.Dispatch("error", { message: "Unable to close upload ticket.", error: error });
         });
     };
-    App.prototype.abort = function () {
-        event_service_1.EventService.Dispatch("uploadaborted");
-        this.done();
+    App.prototype.updateVideo = function (vimeoId) {
+        this.mediaService.updateVideoData(this.ticketService.token, vimeoId).then(function (response) {
+            var meta = media_service_1.MediaService.GetMeta(vimeoId, response.data);
+            event_service_1.EventService.Dispatch("complete", meta);
+        })["catch"](function (error) {
+            event_service_1.EventService.Dispatch("error", { message: "Unable to update video " + vimeoId + " with name and description.", error: error });
+        });
     };
     App.prototype.on = function (eventName, callback) {
         if (callback === void 0) { callback = null; }
@@ -496,7 +512,6 @@ exports.__esModule = true;
 var http_service_1 = __webpack_require__(0);
 var ticket_1 = __webpack_require__(12);
 var routes_1 = __webpack_require__(3);
-var status_enum_1 = __webpack_require__(1);
 /**
  * Created by kfaulhaber on 30/06/2017.
  */
@@ -524,13 +539,7 @@ var TicketService = (function () {
         var request = http_service_1.HttpService.CreateRequest("DELETE", routes_1.VIMEO_ROUTES.DEFAULT(this.ticket.completeUri), null, {
             Authorization: "Bearer " + this.token
         });
-        return this.httpService.send(request, null, TicketService.CloseResolver);
-    };
-    TicketService.CloseResolver = function (xhr, response) {
-        if (xhr.status < 400) {
-            response.statusCode = status_enum_1.Status.Resolved;
-            response.responseHeaderData = xhr.getResponseHeader("Location");
-        }
+        return this.httpService.send(request);
     };
     return TicketService;
 }());
@@ -598,8 +607,6 @@ var Response = (function () {
         this.status = status;
         this.statusText = statusText;
         this.data = data;
-        this.responseHeaderData = null;
-        this.duration = -1;
         this.statusCode = status_enum_1.Status.Neutral;
     }
     return Response;
@@ -650,7 +657,7 @@ var ChunkService = (function () {
         this.offset = offset;
     }
     ChunkService.prototype.updateSize = function (uploadDuration) {
-        this.size = Math.floor((this.size * this.preferredUploadDuration) / uploadDuration);
+        this.size = Math.floor((this.size * this.preferredUploadDuration) / uploadDuration * ChunkService.Adjuster);
     };
     ChunkService.prototype.create = function () {
         var end = Math.min(this.offset + this.size, this.mediaService.media.file.size);
@@ -667,6 +674,7 @@ var ChunkService = (function () {
     ChunkService.prototype.isDone = function () {
         return this.offset >= this.mediaService.media.file.size;
     };
+    ChunkService.Adjuster = 0.7;
     return ChunkService;
 }());
 exports.ChunkService = ChunkService;
@@ -700,7 +708,6 @@ exports.Chunk = Chunk;
 
 exports.__esModule = true;
 var http_service_1 = __webpack_require__(0);
-var status_enum_1 = __webpack_require__(1);
 /**
  * Created by kfaulhaber on 30/06/2017.
  */
@@ -712,7 +719,6 @@ var UploadService = (function () {
         this.statService = statService;
     }
     UploadService.prototype.send = function (chunk) {
-        console.log(chunk.content, chunk.contentRange);
         var statData = this.statService.create();
         this.statService.save(statData);
         var request = http_service_1.HttpService.CreateRequest("PUT", this.ticketService.ticket.uploadLinkSecure, chunk.content, {
@@ -726,23 +732,7 @@ var UploadService = (function () {
             'Content-Type': this.mediaService.media.file.type,
             'Content-Range': 'bytes */* '
         });
-        return this.httpService.send(request, null, UploadService.RangeResolver);
-    };
-    UploadService.RangeResolver = function (xhr, response) {
-        switch (xhr.status) {
-            case 308:
-                response.responseHeaderData = xhr.getResponseHeader("Range");
-                response.statusCode = status_enum_1.Status.Resolved;
-                break;
-            case 200 || 201:
-                response.statusCode = status_enum_1.Status.Resolved;
-                break;
-            default:
-                console.warn("Unexpected xhr status found (" + xhr.status + ").");
-        }
-        if (xhr.status === 308) {
-            response.responseHeaderData = xhr.getResponseHeader("Range");
-        }
+        return this.httpService.send(request);
     };
     return UploadService;
 }());
@@ -795,27 +785,31 @@ var routes_1 = __webpack_require__(3);
  * Created by kfaulhaber on 21/07/2017.
  */
 var MediaService = (function () {
-    function MediaService(httpService, options) {
+    function MediaService(httpService, file, name, description, upgrade_to_1080, useDefaultFileName, privacy) {
         this.httpService = httpService;
-        this.options = options;
-        this.media = new media_1.Media();
-        this.setData(options);
-    }
-    MediaService.prototype.setData = function (options) {
-        for (var prop in options) {
-            if (options.hasOwnProperty(prop) && this.media.hasOwnProperty(prop)) {
-                this.media[prop] = options[prop];
-            }
-        }
-        if (this.media.file !== null && this.media.name === "") {
+        var mediaName = (useDefaultFileName) ? file.name : name;
+        this.media = new media_1.Media(mediaName, description, file, upgrade_to_1080, privacy);
+        if (useDefaultFileName) {
             this.media.name = this.media.file.name;
         }
-    };
-    MediaService.prototype.updateVideoData = function (token, videoId) {
-        var request = http_service_1.HttpService.CreateRequest("PATCH", routes_1.VIMEO_ROUTES.VIDEOS(videoId), JSON.stringify(this.media.toJSON()), {
+    }
+    MediaService.prototype.updateVideoData = function (token, vimeoId) {
+        var params = this.media.toJSON();
+        var query = Object.keys(this.media.toJSON()).map(function (key) { return encodeURIComponent(key) + "=" + encodeURIComponent(params[key]); });
+        console.log("data", params, query);
+        var request = http_service_1.HttpService.CreateRequest("PATCH", routes_1.VIMEO_ROUTES.VIDEOS(vimeoId), query, {
             Authorization: "Bearer " + token
         });
         return this.httpService.send(request);
+    };
+    MediaService.GetMeta = function (vimeoId, data) {
+        return {
+            id: vimeoId,
+            link: data.link,
+            name: data.name,
+            uri: data.uri,
+            createdTime: data.created_time
+        };
     };
     return MediaService;
 }());
@@ -833,21 +827,18 @@ exports.MediaService = MediaService;
  */
 exports.__esModule = true;
 var Media = (function () {
-    //TODO: Check to see if these default values are acceptable
-    function Media(name, description, file, upgrade_to_1080) {
-        if (name === void 0) { name = ""; }
-        if (description === void 0) { description = ""; }
-        if (file === void 0) { file = null; }
-        if (upgrade_to_1080 === void 0) { upgrade_to_1080 = false; }
+    function Media(name, description, file, upgrade_to_1080, privacy) {
         this.name = name;
         this.description = description;
         this.file = file;
         this.upgrade_to_1080 = upgrade_to_1080;
+        this.privacy = privacy;
     }
     Media.prototype.toJSON = function () {
         return {
             name: this.name,
-            description: this.description
+            description: this.description,
+            'privacy.view': (this.privacy) ? 'nobody' : 'anybody'
         };
     };
     return Media;
@@ -889,19 +880,11 @@ var StatService = (function () {
     StatService.prototype.save = function (timeData) {
         this.chunkStatData = timeData;
     };
-    StatService.prototype.estimateTimeLeft = function (statData) {
-        var nTime = Math.floor(new Date().getTime() - statData.start.getTime());
-        var ratio = this.calculateRatio(statData.loaded, statData.total);
-        return (ratio > 0) ? Math.floor(nTime * ratio) : nTime;
-    };
     StatService.prototype.calculateRatio = function (loaded, total) {
         return loaded / total;
     };
     StatService.prototype.calculatePercent = function (loaded, total) {
         return Math.floor(this.calculateRatio(loaded, total) * 100);
-    };
-    StatService.prototype.calculateUploadSpeed = function (seconds) {
-        return (seconds > 0) ? Math.floor(this.chunkStatData.total / seconds) : 0;
     };
     StatService.prototype.updateTotal = function () {
         this.totalStatData.loaded += this.chunkStatData.total;
@@ -918,27 +901,14 @@ var StatService = (function () {
                 _this.chunkStatData.total = _this.chunkStatData.loaded = 0;
                 chunkPercent = 100;
             }
+            _this.totalStatData.loaded = Math.max(_this.chunkService.offset, _this.totalStatData.loaded);
             _this.totalStatData.end = _this.chunkStatData.end;
             _this.previousTotalPercent = Math.max(_this.totalStatData.loaded + _this.chunkStatData.loaded, _this.previousTotalPercent);
             var totalPercent = _this.calculatePercent(_this.previousTotalPercent, _this.totalStatData.total);
-            var chunkTimeLeft = (!_this.chunkStatData || _this.chunkStatData.done) ? 0 : _this.estimateTimeLeft(_this.chunkStatData);
-            var chunkSecondsLeft = utils_1.TimeUtil.TimeToSeconds(chunkTimeLeft);
-            var timeLeft = _this.estimateTimeLeft(_this.totalStatData);
-            var secondsLeft = utils_1.TimeUtil.TimeToSeconds(timeLeft);
-            var uploadSpeed = _this.calculateUploadSpeed(chunkSecondsLeft);
-            event_service_1.EventService.Dispatch("estimatedtimechanged", {
-                seconds: secondsLeft,
-                timeFormat: utils_1.TimeUtil.MilisecondsToString(timeLeft)
-            });
-            event_service_1.EventService.Dispatch("estimatedchunktimechanged", {
-                seconds: chunkSecondsLeft,
-                timeFormat: utils_1.TimeUtil.MilisecondsToString(chunkTimeLeft)
-            });
             event_service_1.EventService.Dispatch("chunkprogresschanged", chunkPercent);
             if (_this.totalStatData.done) {
                 totalPercent = 100;
             }
-            event_service_1.EventService.Dispatch("estimateduploadspeedchanged", uploadSpeed);
             event_service_1.EventService.Dispatch("totalprogresschanged", totalPercent);
         }, this.timeInterval);
     };
