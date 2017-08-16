@@ -44,8 +44,10 @@ Create a new `VimeoUpload` initialized with a Blob or File and Vimeo Access Toke
 ```javascript
 
 var options = {
-    token:                    "TOKEN_STRING_HERE", //Required
-    file:                     null, //Required
+    token:        "TOKEN_STRING_HERE",      //Required
+    file:          null,                    //Required
+    name:         "My awesome title",       //Optional
+    description:  "My awesome description"  //Optional
 }
 
 var uploader = new VimeoUpload();
@@ -123,7 +125,8 @@ VimeoUpload comes with different events that can be binded.
 
 
 ##### Usage:
-```
+```javascript
+
     //Get the progress bar elements
     var totalProgress = document.getElementById("progress-total");
     var chunkProgress = document.getElementById("progress-chunk");
@@ -157,7 +160,7 @@ VimeoUpload comes with different events that can be binded.
 
 ```
 
-Your access token need to be authorized by Vimeo. Ensure it has the a "EDIT" and "UPLOAD" scope. Create new Vimeo access token [here](https://developer.vimeo.com/apps).
+Your access token need to be authorized by Vimeo. Ensure it has an "EDIT" and "UPLOAD" scope. Create new Vimeo access token [here](https://developer.vimeo.com/apps).
 
 Check `index.html` for details and additional parameters you can include when initializing `VimeoUpload`.
 
