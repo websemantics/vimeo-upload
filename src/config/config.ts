@@ -22,8 +22,6 @@ export const DEFAULT_VALUES = {
 export const DEFAULT_EVENTS = {
   chunkprogresschanged: (event: CustomEvent)=>console.log(`Default: Chunk Progress Update: ${event.detail}/100`),
   totalprogresschanged: (event: CustomEvent)=>console.log(`Default: Total Progress Update: ${event.detail}/100`),
-  estimatedtimechanged: (event: CustomEvent)=>console.log(`Default: Estimated Time Update: ${event.detail}`),
-  estimatedchunktimechanged: (event: CustomEvent)=>console.log(`Default: Estimated Chunk Time Update: ${event.detail}`),
   error:                  ()=>{},
   complete:               ()=>{}
 };

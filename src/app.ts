@@ -97,7 +97,7 @@ export class App {
                 this.statService.start();
                 this.process();
             }).catch((error)=>{
-                if(this.failCount <= this.maxAcceptedFails){
+                if(this.canContinue()){
                     this.failCount++;
                     EventService.Dispatch("error", { message:`Error creating ticket.`, error});
                     setTimeout(()=>{
@@ -106,6 +106,8 @@ export class App {
                 }
             });
     }
+
+
 
     /**
      * Process method that will seek the next chunk to upload
@@ -116,7 +118,7 @@ export class App {
             this.chunkService.updateSize(this.statService.getChunkUploadDuration());
             this.check();
         }).catch(error=>{
-            if(this.failCount <= this.maxAcceptedFails){
+            if(this.canContinue()){
                 this.failCount++;
                 EventService.Dispatch("error", { message:`Error sending chunk.`, error});
                 this.chunkService.updateSize(this.statService.getChunkUploadDuration());
@@ -156,7 +158,7 @@ export class App {
             }
         }).catch(error=>{
             EventService.Dispatch("error", { message: `Unable to get range.`, error});
-            if(this.failCount <= this.maxAcceptedFails){
+            if(this.canContinue()){
                 this.failCount++;
                 setTimeout(()=>{
                     this.check();
@@ -230,6 +232,14 @@ export class App {
             callback = EventService.GetDefault(eventName);
         }
         EventService.Remove(eventName, callback)
+    }
+
+    /**
+     * canContinue method checks to see if the amount of failCounts exceed the maxAcceptedFails
+     * @returns {boolean}
+     */
+    private canContinue(): boolean {
+        return (this.maxAcceptedFails === 0) ? true : (this.failCount <= this.maxAcceptedFails) ? true : false;
     }
     
 }
