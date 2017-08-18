@@ -46,8 +46,10 @@ Create a new `VimeoUpload` initialized with a Blob or File and Vimeo Access Toke
 var options = {
     token:        "TOKEN_STRING_HERE",      //Required
     file:          null,                    //Required
-    name:         "My awesome title",       //Optional
-    description:  "My awesome description"  //Optional
+    videoData: {
+        name:         "My awesome title",       //Optional
+        description:  "My awesome description"  //Optional
+    }
 }
 
 var uploader = new VimeoUpload();
@@ -66,17 +68,15 @@ List of options that can be overriden.
 |---------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------|----------|
 | token                     | Authentication token created on Vimeo, must have an UPLOAD scope (to be able to upload), and an EDIT scope(to add meta data after upload is complete)                     | YOUR_TOKEN_HERE                                                        | Required |
 | file                      | The File or Blog to upload.                                                                                                                                               | null                                                                   | Required |
+| videoData                 | Object that supports all video data properties. See link for more info: https://developer.vimeo.com/api/endpoints/videos#PATCH/videos/{video_id}                          | {}                                                                     | Optional
 | preferredUploadDuration   | The preferred chunk upload duration. The chunk size will be updated after each chunk upload to best fit the prefferedUploadDuration.                                      | 20 [seconds]                                                           | Optional |
 | chunkSize                 | The size of the chunk to be uploaded                                                                                                                                      | 1024*1024                                                              | Optional |
 | supportedFiles            | A list of supported file extensions.                                                                                                                                      | ["mov", "mpeg4", "mp4", "avi", "wmv", "mpegps", "flv", "3gpp", "webm"] | Optional |
-| name                      | The name of the file                                                                                                                                                      | ""                                                                     | Optional |
-| description               | The description of the file                                                                                                                                               | ""                                                                     | Optional |
 | upgrade_to_1080           | Upgrade the video to 1080                                                                                                                                                 | false                                                                  | Optional |
 | timeInterval              | Time interval for event data to be dispatched.                                                                                                                            | 150 [miliseconds]                                                      | Optional |
 | maxAcceptedFails          | The number of failures that can occur before the upload is terminated. Fails occur whenever a request fails. Setting this to 0 will allow for unlimited amount of fails.  | 20                                                                     | Optional |
 | maxAcceptedUploadDuration | If the maxAcceptedUploadDuration for a chunk is exceeded, the upload request is aborted and the chunkSize is updated before sending picking up where the upload was left. | 60 [seconds]                                                           | Optional |
 | useDefaultFileName        | Use the file's default name as the video name.                                                                                                                            | false                                                                  | Optional |
-| privacy                   | Sets the video's privacy to "nobody" if true, and to "anybody" if false.                                                                                                  | false                                                                  | Optional |
 | retryTimeout              | The time before the upload process is resumed when a fail occurs.                                                                                                         | 5000 [miliseconds]                                                     | Optional |
 ```
 
@@ -89,17 +89,15 @@ List of options that can be overriden.
 var options = {
     token:                    "TOKEN_STRING_HERE", //Required
     file:                     null, //Required
+    videoData:                {}, //Check link to see all supported properties | https://developer.vimeo.com/api/endpoints/videos#PATCH/videos/{video_id}
     preferredUploadDuration:  20,
     chunkSize:                1024*1024,
     supportedFiles:           ["mov", "mpeg4", "mp4", "avi", "wmv", "mpegps", "flv", "3gpp", "webm"],
-    name:                     "",
-    description:              "",
     upgrade_to_1080:          false,
     timeInterval:             150,
     maxAcceptedFails:         20,
     maxAcceptedUploadDuration: 60,
     useDefaultFileName:       false,
-    privacy:                  false,
     retryTimeout:             5000
 };
 
@@ -119,8 +117,8 @@ VimeoUpload comes with different events that can be binded.
 |----------------------|---------------------------------------------------------|---------------|-------------------------------------------------------------------------------------------|
 | chunkprogresschanged | Regularly sends the current percent of a chunk upload   | Default 150ms | { detail: number }                                                                        |
 | totalprogresschanged | Regularly sends the current percent of the total upload | Default 150ms | { detail: number }                                                                        |
-| error                | Emits if any errors occurs                              | N/A           | { detail: { message: string, error: [Object object] } }                                   |
-| complete             | Called once when the upload is completed                | Once          | { detail: { id: number,  link: string, name: string, uri: string, createdTime: string } } |
+| vimeouploaderror     | Emits if any errors occurs                              | N/A           | { detail: { message: string, error: [Object object] } }                                   |
+| vimeouploadcomplete  | Called once when the upload is completed                | Once          | { detail: { id: number,  link: string, name: string, uri: string, createdTime: string } } |
 ```
 
 
