@@ -145,12 +145,26 @@ VimeoUpload comes with different events that can be binded.
         totalProgress.innerHTML = '&nbsp;' + progress + '%'
     });
 
-    vimeoUpload.on("error", function(event){
+    vimeoUpload.on("vimeouploaderror", function(event){
         console.log(event.detail.message, event.detail.error);
     });
+id:             vimeoId,
+            link:           data.link,
+            name:           data.name,
+            uri:            data.uri,
+            createdTime:    data.created_time
+    vimeoUpload.on("vimeouploadcomplete", function(event){
 
-    vimeoUpload.on("complete", function(event){
         console.log("Meta data", event.detail);
+
+        //Properties returned
+        //var vimeoId     = event.detail.id;
+        //var link        = event.detail.link;
+        //var name        = event.detail.name;
+        //var uri         = event.detail.uri;
+        //var createdTime = event.detail.created_time;
+
+
     });
 
     //Start upload
