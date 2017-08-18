@@ -1,0 +1,120 @@
+html {
+    position: relative;
+    min-height: 100%;
+}
+
+body {
+    margin-bottom: 60px;
+    color: #505662;
+}
+
+.help {
+    font-size: smaller;
+}
+
+.page-header {
+    padding-bottom: 18px;
+    margin: 40px 0 12px;
+}
+
+.logo {
+    width: 100%;
+    margin-bottom: 20px;
+}
+
+.lead {
+    font-size: 18px;
+    margin-bottom: 12px;
+}
+
+.footer {
+    position: absolute;
+    bottom: 0;
+    padding-top: 15px;
+    width: 100%;
+    /* Set the fixed height of the footer here */
+    height: 120px;
+    color: #505662;
+}
+
+.footer a.brand {
+    color: #505662;
+}
+
+.footer a.brand:hover {
+    color: #393e46;
+    text-decoration: none;
+}
+
+.footer .container {
+    border-top: 1px solid #eee;
+    padding-top: 45px;
+}
+
+/* Custom page CSS */
+
+.container {
+    width: auto;
+    max-width: 680px;
+    padding: 0 15px;
+}
+
+.container .text-muted {
+    margin: 20px 0;
+}
+
+#progress-container, #progress_partial-container {
+    -webkit-box-shadow: none;
+    box-shadow: inset none;
+    display:none;
+}
+
+#drop_zone {
+    border: 2px dashed #bbb;
+    -moz-border-radius: 5px;
+    -webkit-border-radius: 5px;
+    border-radius: 5px;
+    padding-top: 60px;
+    text-align: center;
+    font: 20pt bold 'Helvetica';
+    color: #bbb;
+    height:140px;
+}
+
+#video-data {
+    margin-top: 1em;
+    font-size: 1.1em;
+    font-weight: 500;
+}
+
+/* Bragit buttons, http://websemantics.github.io/bragit/ */
+.ui.bragit.button,
+.ui.bragit.buttons .button {
+    background-color: #676f7e;
+    color: #fff!important;
+}
+
+.ui.bragit.label {
+    color: #505662!important;
+    border-color: #676f7e!important;
+    background-color: #ffffff;
+}
+
+.ui.bragit.button:focus,
+.ui.bragit.buttons .button:focus,
+.ui.bragit.button:hover,
+.ui.bragit.buttons .button:hover {
+    background-color: #505662;
+}
+
+.ui.bragit.labels .label:focus,
+.ui.bragit.label:focus,
+.ui.bragit.labels .label:hover,
+.ui.bragit.label:hover {
+    color: #505662!important;
+    border-color: #505662!important;
+}
+
+.ui.labeled .ui.button .star.icon {
+    color: #F5CC7A!important;
+}

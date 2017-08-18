@@ -1,8 +1,8 @@
 {
   "name": "vimeo-upload",
-  "version": "0.1.6",
-  "description": "Upload videos to your Vimeo account and update their metadata directly from a browser or a Node.js app.",
-  "main": "vimeo-upload.js",
+  "version": "2.0.0",
+  "description": "Upload videos by chunk to your Vimeo account and update their metadata directly from a browser or a Node.js app.",
+  "main": "",
   "homepage": "https://github.com/websemantics/vimeo-upload#readme",
   "repository" : {
     "type" : "git",
@@ -16,19 +16,21 @@
     "video",
     "upload",
     "node",
-    "browser"
+    "browser",
+    "chunk",
+    "typescript"
   ],
-  "deploy": {
-    "name": "iAyeBot",
-    "email": "iayebot@websemantics.ca",
-    "dist": "dist",
-    "message": "Deploy to gh-pages"
-  },
-  "scripts": {
-    "deploy": "cd $npm_package_deploy_dist && git push --force --quiet \"https://${GH_TOKEN}@${GH_REF}\" master:gh-pages > /dev/null 2>&1  ",
-    "predeploy": "mkdir -p ${npm_package_deploy_dist} && npm run copy -s&& cd $npm_package_deploy_dist && git init && git config user.name $npm_package_deploy_name && git config user.email $npm_package_deploy_email && git add -A . && git commit -am \"$npm_package_deploy_message\" ",
-    "copy": "cp -r ./img $npm_package_deploy_dist && cp ./index.html $npm_package_deploy_dist && cp ./vimeo-upload.js $npm_package_deploy_dist "
+  "devDependencies": {
+    "awesome-typescript-loader": "^3.1.2",
+    "typescript": "^2.2.2",
+    "webpack": "^3.3.0"
   },
   "author": "Adnan M.Sagar, PhD.",
+  "contributors": [
+    {"name": "Kevin Faulhaber",
+      "email": "rugdealer@protonmail.com",
+      "url": "https://github.com/rugdealer"
+    }
+  ],
   "license": "Apache 2.0"
 }
