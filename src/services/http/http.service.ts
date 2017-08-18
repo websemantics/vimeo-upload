@@ -48,8 +48,6 @@ export class HttpService {
             return new Header(rawHeader.slice(0, index).trim(), rawHeader.slice(index+1).trim());
         });
 
-        console.log(response.responseHeaders);
-
         if(xhr.status > 308){
             response.statusCode = Status.Rejected
         }else{

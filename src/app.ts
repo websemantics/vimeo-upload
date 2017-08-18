@@ -49,11 +49,9 @@ export class App {
         this.mediaService = new MediaService(
             this.httpService,
             values.file,
-            values.name,
-            values.description,
+            values.videoData,
             values.upgrade_to_1080,
-            values.useDefaultFileName,
-            values.private
+            values.useDefaultFileName
         );
         this.chunkService = new ChunkService(
             this.mediaService,
@@ -99,7 +97,7 @@ export class App {
             }).catch((error)=>{
                 if(this.canContinue()){
                     this.failCount++;
-                    EventService.Dispatch("error", { message:`Error creating ticket.`, error});
+                    EventService.Dispatch("vimeouploaderror", { message:`Error creating ticket.`, error});
                     setTimeout(()=>{
                         this.start(options);
                     }, this.retryTimeout);
@@ -120,7 +118,7 @@ export class App {
         }).catch(error=>{
             if(this.canContinue()){
                 this.failCount++;
-                EventService.Dispatch("error", { message:`Error sending chunk.`, error});
+                EventService.Dispatch("vimeouploaderror", { message:`Error sending chunk.`, error});
                 this.chunkService.updateSize(this.statService.getChunkUploadDuration());
                 setTimeout(()=>{
                     this.check();
@@ -157,7 +155,7 @@ export class App {
                     console.warn(`Unrecognized status code (${response.status}) for chunk range.`)
             }
         }).catch(error=>{
-            EventService.Dispatch("error", { message: `Unable to get range.`, error});
+            EventService.Dispatch("vimeouploaderror", { message: `Unable to get range.`, error});
             if(this.canContinue()){
                 this.failCount++;
                 setTimeout(()=>{
@@ -191,7 +189,7 @@ export class App {
             console.log(`Delete success:`, response);
         }).catch((error)=>{
             this.statService.stop();
-            EventService.Dispatch("error", { message:`Unable to close upload ticket.`, error});
+            EventService.Dispatch("vimeouploaderror", { message:`Unable to close upload ticket.`, error});
         });
     }
 
@@ -202,9 +200,9 @@ export class App {
     private updateVideo(vimeoId: number){
         this.mediaService.updateVideoData(this.ticketService.token, vimeoId).then((response: Response) => {
             let meta = MediaService.GetMeta(vimeoId, response.data);
-            EventService.Dispatch("complete", meta);
+            EventService.Dispatch("vimeouploadcomplete", meta);
         }).catch(error=>{
-            EventService.Dispatch("error", { message: `Unable to update video ${vimeoId} with name and description.`, error})
+            EventService.Dispatch("vimeouploaderror", { message: `Unable to update video ${vimeoId} with name and description.`, error})
         });
     }
 

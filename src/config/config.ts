@@ -15,13 +15,14 @@ export const DEFAULT_VALUES = {
   maxAcceptedFails:         20,
   maxAcceptedUploadDuration: 60,
   useDefaultFileName:       false,
-  privacy:                  false,
-  retryTimeout:             5000
+  retryTimeout:             5000,
+  videoData:                {} //See link for a full list of supported metaData | https://developer.vimeo.com/api/endpoints/videos#PATCH/videos/{video_id}
 };
+
 
 export const DEFAULT_EVENTS = {
   chunkprogresschanged: (event: CustomEvent)=>console.log(`Default: Chunk Progress Update: ${event.detail}/100`),
   totalprogresschanged: (event: CustomEvent)=>console.log(`Default: Total Progress Update: ${event.detail}/100`),
-  error:                  ()=>{},
-  complete:               ()=>{}
+  vimeouploaderror:     ()=>{},
+  vimeouploadcomplete:  ()=>{}
 };

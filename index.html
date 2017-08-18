@@ -170,8 +170,20 @@
                 </div>
                 <div class="checkbox">
                     <label>
-                        <input type="checkbox" id="make_private" name="make_private"> Make Private </input>
+                        <input type="checkbox" id="use_default_filename" name="use_default_filename"> Use default filename as video name </input>
                     </label>
+                </div>
+                <div class="form-group">
+                    <label for="make_private">Privacy</label>
+                    <select class="form-control" id="make_private">
+                        <option value="anybody">anybody</option>
+                        <option value="contacts">contacts</option>
+                        <option value="disable">disable</option>
+                        <option value="nobody">nobody</option>
+                        <option value="password">password</option>
+                        <option value="unlisted">unlisted</option>
+                        <option value="users">users</option>
+                    </select>
                 </div>
             </div>
             <div class="col-md-4">
@@ -201,8 +213,6 @@
 
         progressBarsContainer.style.display = "none";
 
-        console.log(VimeoUpload);
-
         var vimeoUpload = new VimeoUpload();
 
         vimeoUpload.on("chunkprogresschanged", function(event){
@@ -218,11 +228,11 @@
             totalProgress.innerHTML = '&nbsp;' + progress + '%'
         });
 
-        vimeoUpload.on("error", function(event){
+        vimeoUpload.on("vimeouploaderror", function(event){
             console.log(event.detail.message, event.detail.error);
         });
 
-        vimeoUpload.on("complete", function(event){
+        vimeoUpload.on("vimeouploadcomplete", function(event){
             console.log("Meta data", event.detail);
         });
 
@@ -236,9 +246,12 @@
             var files = evt.dataTransfer ? evt.dataTransfer.files : $(this).get(0).files;
 
             vimeoUpload.start({
-                name: document.getElementById('videoName').value,
-                description: document.getElementById('videoDescription').value,
-                privacy: document.getElementById('make_private').checked,
+                videoData: {
+                    name: document.getElementById('videoName').value,
+                    description: document.getElementById('videoDescription').value,
+                    privacy: document.getElementById('make_private').value
+                },
+                useDefaultFileName: document.getElementById("use_default_filename").value,
                 file: files[0],
                 token: document.getElementById('accessToken').value,
                 upgrade_to_1080: document.getElementById('upgrade_to_1080').checked

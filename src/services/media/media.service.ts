@@ -13,45 +13,35 @@ export class MediaService {
      * constructor that initiates the services with the list of dependencies
      * @param httpService
      * @param file
-     * @param name
-     * @param description
+     * @param data
      * @param upgrade_to_1080
      * @param useDefaultFileName
-     * @param privacy
      */
     constructor(
         public httpService: HttpService,
         file: File,
-        name: string,
-        description: string,
+        data: any,
         upgrade_to_1080: boolean,
-        useDefaultFileName: boolean,
-        privacy: boolean
+        useDefaultFileName: boolean
     ){
-
-        let mediaName = (useDefaultFileName) ? file.name : name;
-
-        this.media = new Media(mediaName, description, file, upgrade_to_1080, privacy);
-
         if(useDefaultFileName){
-            this.media.name = this.media.file.name;
+            data["name"] = file.name;
         }
+        this.media = new Media(file, data, upgrade_to_1080);
     }
 
     /**
      * updateVideoData method that sends a request to edit video information.
      * Will not work if the token does not have the "EDIT" scope. Will return a 403 forbidden.
-     * @param token
-     * @param vimeoId
+     * @param {string} token
+     * @param {number} vimeoId
      * @returns {Promise<T>}
      */
     public updateVideoData<T>(token: string, vimeoId: number): Promise<T>{
 
-        let params = this.media.toJSON();
-
-        let query = Object.keys(this.media.toJSON()).map(key=>`${encodeURIComponent(key)}=${encodeURIComponent(params[key])}`);
-        console.log("data", params, query)
-        
+        let params = this.media.data;
+        let query = Object.keys(params).map(key=>`${encodeURIComponent(key)}=${encodeURIComponent(params[key])}`).join('&');
+        console.log(query);
         let request = HttpService.CreateRequest("PATCH", VIMEO_ROUTES.VIDEOS(vimeoId), query, {
             Authorization: `Bearer ${token}`
         });
@@ -60,10 +50,9 @@ export class MediaService {
 
     /**
      * GetMeta static method returns an object with data from updateVideoData response
-     * @param vimeoId
-     * @param data
+     * @param {number} vimeoId
+     * @param {object} data
      * @returns {{id: number, link: (any|HTMLLinkElement|(function(string): string)), name: any, uri: any, createdTime: any}}
-     * @constructor
      */
     public static GetMeta(vimeoId: number, data: any): Object{
         return {
