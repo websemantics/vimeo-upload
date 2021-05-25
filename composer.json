@@ -1,0 +1,16 @@
+{
+    "name": "websemantics/vimeo-upload",
+    "description": "Upload videos to your Vimeo account and update their metadata directly from a browser or a Node.js app.",
+    "type": "library",
+    "authors": [
+        {
+            "name": "websemantics",
+            "email": "adnan@websemantics.ca"
+        },
+        {
+            "name": "sadashiv",
+            "email": "dalvisadashiv@gmail.com"
+        }
+    ],
+    "require": {}
+}
